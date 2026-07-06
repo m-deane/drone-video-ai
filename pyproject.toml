@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drone_video_ai"
+version = "0.1.0"
+description = "Drone video editing AI pipeline: highlight extraction, reel stitching, and reference-pack curation."
+requires-python = ">=3.10"
+readme = { text = "Drone video editing AI pipeline (Capability 1: highlight extraction, Milestone 1).", content-type = "text/plain" }
+
+# Milestone 1 runtime dependencies only. Explicitly excluded (spec Scope-out):
+# ultralytics/YOLOv8 (AGPL-3.0), pyiqa/IQA-PyTorch (non-commercial license),
+# any TransNetV2/PyTorch/TensorFlow shot-boundary dependency.
+# Deferred-milestone-only (do NOT add here): opentimelineio, otio-cmx3600-adapter.
+dependencies = [
+    "opencv-python>=4.8",
+    "scenedetect[opencv]>=0.6",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+drone-highlights = "drone_video_ai.highlight_extraction.cli:main"
+drone-stitch = "drone_video_ai.reel_stitching.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: slower tests that use real data/raw/ sample footage",
+]

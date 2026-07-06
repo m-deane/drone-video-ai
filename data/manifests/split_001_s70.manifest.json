@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "source_file": {
+    "path": "data/raw/DJI_0355/split_001_s70.mp4",
+    "name": "split_001_s70.mp4",
+    "duration": 15.0,
+    "width": 1280,
+    "height": 720,
+    "fps": 30.0,
+    "codec": "h264",
+    "pix_fmt": "yuv420p"
+  },
+  "scoring_weights": {
+    "weights_version": "default-v1",
+    "weights": {
+      "sharpness": 0.3333333333333333,
+      "exposure": 0.3333333333333333,
+      "motion_smoothness": 0.3333333333333333,
+      "composition": 0.0
+    }
+  },
+  "candidate_boundaries": {
+    "scene_boundaries": [],
+    "motion_minima_boundaries": [
+      0.16666666666666666,
+      1.4666666666666666,
+      3.6,
+      4.8,
+      6.033333333333333,
+      7.066666666666666,
+      8.166666666666666,
+      9.166666666666666,
+      10.233333333333333,
+      11.466666666666667,
+      12.9,
+      14.2
+    ],
+    "union_boundaries": [
+      0.0,
+      0.16666666666666666,
+      1.4666666666666666,
+      3.6,
+      4.8,
+      6.033333333333333,
+      7.066666666666666,
+      8.166666666666666,
+      9.166666666666666,
+      10.233333333333333,
+      11.466666666666667,
+      12.9,
+      14.2,
+      15.0
+    ]
+  },
+  "normalization": {
+    "sharpness": "in-video min-max over sampled frames -> [0,1]",
+    "exposure": "1 - (clipped-pixel fraction from histogram) -> [0,1]",
+    "motion_smoothness": "in-video min-max over inverse jerk magnitude -> [0,1]",
+    "composition": "not scored in this schema version (Milestone 2, deferred)"
+  },
+  "segments": [
+    {
+      "segment_id": "seg_0001",
+      "start_time": 0.0,
+      "end_time": 15.0,
+      "duration": 15.0,
+      "scores": {
+        "sharpness": 1.0,
+        "exposure": 0.7555555552244186,
+        "motion_smoothness": 1.0,
+        "composition": null
+      },
+      "composite_score": 0.9185185184081395,
+      "gate_status": "passed"
+    }
+  ],
+  "excluded_segments": [],
+  "summary": {
+    "total_segments": 1,
+    "total_duration": 15.0,
+    "avg_composite_score": 0.9185185184081395,
+    "scenes_detected": 0,
+    "motion_minima_detected": 12,
+    "segments_excluded": 0
+  }
+}

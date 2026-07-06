@@ -21,3 +21,19 @@
 # Raw footage over 100MB
 /data/raw/instagram_reel_v34_all_kb_full.mp4
 /data/raw/viral_test_v2_4k.mp4
+
+# Pipeline outputs — regenerable from manifests + raw footage, per plan.md's
+# retention convention (spec Open Question #2). data/manifests/ (small JSON)
+# is intentionally NOT ignored — safe to commit selectively.
+/data/interim/
+/data/output/
+/data/reference_pack/media/*
+!/data/reference_pack/media/.gitkeep
+
+# Python
+/.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+/build/
+.pytest_cache/
