@@ -1,0 +1,23 @@
+.DS_Store
+
+# Inherited claude-template maintainer content — not part of this project.
+# Disposition (delete/keep/move) is an open prerequisite decision (see spec Open Questions #7).
+/README.md
+/CHANGELOG.md
+/TODO.md
+/REVIEW.md
+/PROMPTLAB-READINESS.md
+/CLAUDE.md
+/docs/
+/promptlab/
+/copilot-studio/
+/assets/
+/dist/
+/site/
+/mkdocs.yml
+/sync-claude-template.sh
+/requirements-promptlab.txt
+
+# Raw footage over 100MB
+/example-photos-videos/instagram_reel_v34_all_kb_full.mp4
+/example-photos-videos/viral_test_v2_4k.mp4
