@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "source_url": "https://www.youtube.com/watch?v=D_vOqkEgmY0",
+  "platform": "youtube",
+  "license_category": "all-rights-reserved",
+  "title": "Stunning Drone Footage of Islands From The Sky | BBC Earth",
+  "creator": "BBC Earth",
+  "duration": null,
+  "retrieval_date": "2026-07-06",
+  "scores": {
+    "sharpness": 0.78,
+    "exposure": 0.75,
+    "motion_smoothness": 0.8,
+    "composition": null,
+    "composite_score": 0.7767
+  },
+  "award_or_showcase_provenance": "Official BBC Earth YouTube compilation of aerial/drone footage from the BBC television series 'Earth's Tropical Islands' (2020), showcasing Madagascar, Borneo, and Hawaii from above; published to BBC Earth's own channel on 2020-01-02",
+  "local_media_path": null,
+  "scores_provenance": "manually_estimated",
+  "notes": "MANUALLY CURATED WORKED EXAMPLE -- one exemplar only, per spec AC3.4/Scope-out (no automated scraping/bulk downloading was performed to produce this record). Verified this session via YouTube's oEmbed endpoint (https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=D_vOqkEgmY0&format=json), which confirmed the exact title ('Stunning Drone Footage of Islands From The Sky | BBC Earth') and channel/author ('BBC Earth', https://www.youtube.com/@bbcearth) for this URL -- i.e. this is published on BBC Earth's own official YouTube channel, satisfying this assignment's source constraint. Web search corroboration independently confirmed the video features drone/aerial footage of Madagascar, Borneo, and Hawaii, tied to the BBC television mini-series 'Earth's Tropical Islands' (2020, IMDb tt11463862), and that the YouTube upload date is 2020-01-02. `license_category` is set to the conservative default 'all-rights-reserved' because no explicit Creative Commons marking on this specific upload was verified in this session (per this project's stated default: assume all-rights-reserved unless the uploader's license setting is directly confirmed otherwise) -- consequently `local_media_path` stays null and no video file was downloaded or persisted anywhere in this repo, consistent with the spec's metadata-first default and its explicit prohibition on bulk-downloading all-rights-reserved footage. `duration` is left null: YouTube's oEmbed response does not include a duration field, and no further verification of runtime was attempted in this session -- rather than fabricate a plausible-looking number, this field is left unset pending a real YouTube Data API call (see reference_pack/README.md's refresh/expiry process) or manual playback confirmation. `scores` (sharpness/exposure/motion_smoothness) are `scores_provenance: manually_estimated` placeholder judgments based on the video's known genre (a polished, broadcaster-produced 4K aerial compilation drawn from a landmark BBC natural-history television series, implying high production values comparable to other professional showcase exemplars in this pack) -- these are NOT measurements from Capability 1's actual scoring functions (scoring_sharpness.py/scoring_exposure.py/scoring_motion_smoothness.py), since no source file was ever downloaded to run those functions against, per the same no-bulk-download constraint. `composite_score` IS a real computation: it was produced by calling this repo's own `drone_video_ai.highlight_extraction.composite.compute_composite_score` with these three manually-estimated inputs (sharpness=0.78, exposure=0.75, motion_smoothness=0.8, composition=None) and `drone_video_ai.highlight_extraction.weights.default_weights()` (weights_version 'default-v1', equal 1/3 weighting on sharpness/exposure/motion_smoothness, composition weight fixed at 0.0), returning 0.7766666666666666 (rounded to 0.7767 here) via `.venv/bin/python -c \"...\"` in this session -- so the composite arithmetic itself is genuine and reproducible, even though its inputs are estimates rather than measurements."
+}

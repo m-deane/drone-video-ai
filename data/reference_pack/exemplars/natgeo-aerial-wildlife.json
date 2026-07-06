@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "source_url": "https://www.youtube.com/watch?v=NfordlvcS6k",
+  "platform": "youtube",
+  "license_category": "all-rights-reserved",
+  "title": "This is What Gervais' Beaked Whales Look Like From Above | National Geographic",
+  "creator": "National Geographic",
+  "duration": null,
+  "retrieval_date": "2026-07-06",
+  "scores": {
+    "sharpness": 0.75,
+    "exposure": 0.75,
+    "motion_smoothness": 0.7,
+    "composition": null,
+    "composite_score": 0.7333
+  },
+  "award_or_showcase_provenance": "National Geographic exclusive -- reported (Feb/Mar 2018 nationalgeographic.com article 'Gervais' Beaked Whale Drone Footage Captured off Dominica For the First Time') as the first-ever drone/aerial footage of a live Gervais' beaked whale, captured by videographer Patrick Dykstra (Picture Adventure Expeditions) roughly three miles off Dominica's west coast on February 27, 2018",
+  "local_media_path": null,
+  "scores_provenance": "manually_estimated",
+  "notes": "MANUALLY CURATED WORKED EXAMPLE -- one exemplar only, per spec AC3.4/Scope-out (no automated scraping/bulk downloading was performed to produce this record). Verified this session via YouTube's oEmbed endpoint (https://www.youtube.com/oembed?url=...&format=json), which confirmed the exact title ('This is What Gervais' Beaked Whales Look Like From Above | National Geographic') and channel/author (National Geographic, https://www.youtube.com/@NatGeo) for this URL -- i.e. this is published on National Geographic's own official YouTube channel, satisfying this assignment's source constraint. Web search corroboration (nationalgeographic.com/animals/article/beaked-whale-drone-photography-first-spd, plus independent reporting on dominicanewsonline.com and photographer Patrick Dykstra's own site patdykstra.com) confirms the underlying story: this is genuine first-published drone/aerial footage of a Gervais' beaked whale, shot by Patrick Dykstra of Picture Adventure Expeditions off Dominica on February 27, 2018, and released by National Geographic as an exclusive (nationalgeographic.com article dated March 2018). `license_category` is set to the conservative default 'all-rights-reserved' because no explicit Creative Commons marking on this specific upload was verified in this session (per this project's stated default: assume all-rights-reserved unless the uploader's license setting is directly confirmed otherwise) -- consequently `local_media_path` stays null and no video file was downloaded or persisted anywhere in this repo, consistent with the spec's metadata-first default and its explicit prohibition on bulk-downloading all-rights-reserved footage. `duration` is left null: YouTube's oEmbed response does not include a duration field, and no further verification of runtime was attempted in this session -- rather than fabricate a plausible-looking number, this field is left unset pending a real YouTube Data API call (see reference_pack/README.md's refresh/expiry process) or manual playback confirmation. `scores` (sharpness/exposure/motion_smoothness) are `scores_provenance: manually_estimated` placeholder judgments based on the video's known genre (a short, ~1:11 National Geographic broadcast-exclusive news clip of a drone tracking whales at the ocean surface, likely subject to some wave-chop and framing looseness compared to a polished cinematic showcase reel) -- these are NOT measurements from Capability 1's actual scoring functions (scoring_sharpness.py/scoring_exposure.py/scoring_motion_smoothness.py), since no source file was ever downloaded to run those functions against, per the same no-bulk-download constraint. `composite_score` IS a real computation: it was produced by calling this repo's own `drone_video_ai.highlight_extraction.composite.compute_composite_score` with these three manually-estimated inputs (sharpness=0.75, exposure=0.75, motion_smoothness=0.7, composition=None) and `drone_video_ai.highlight_extraction.weights.default_weights()` (weights_version 'default-v1', equal 1/3 weighting on sharpness/exposure/motion_smoothness, composition weight fixed at 0.0), returning 0.7333333333333333 (rounded to 0.7333 here) -- so the composite arithmetic itself is genuine and reproducible, even though its inputs are estimates rather than measurements."
+}
