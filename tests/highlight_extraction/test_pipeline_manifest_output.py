@@ -1,8 +1,10 @@
 """AC1.1, AC1.4, AC1.5 -- end-to-end pipeline run against a synthetic
-multi-segment fixture: manifest validates against the schema, version == 2,
-no post_processing key anywhere, every emitted segment's duration is within
-configured min/max bounds, and the normalization block is present and
-non-empty for all three scored signals.
+multi-segment fixture: manifest validates against the schema, version == 3
+(Milestone 2: composition scoring bumps the schema version -- see
+common/manifest.py module docstring), no post_processing key anywhere,
+every emitted segment's duration is within configured min/max bounds, and
+the normalization block is present and non-empty for all four scored
+signals (sharpness, exposure, motion_smoothness, composition).
 
 Also exercises AC1.2 end-to-end: a deliberately black segment must land in
 excluded_segments with a non-empty gate_failures list, not in segments.
@@ -76,8 +78,10 @@ def test_pipeline_end_to_end_manifest_shape(tmp_path):
     # (a) validates against schema
     validate_highlight_manifest(doc)
 
-    # (b) version == 2
-    assert doc["version"] == 2
+    # (b) version == 3 (Milestone 2: composition scoring changes composite-score
+    # computation for consumers, per plan.md's "Milestone 2 (composition
+    # scoring) changes to this schema" note)
+    assert doc["version"] == 3
 
     # (c) no post_processing key anywhere
     assert "post_processing" not in json.dumps(doc)
@@ -88,17 +92,19 @@ def test_pipeline_end_to_end_manifest_shape(tmp_path):
     for seg in doc["excluded_segments"]:
         assert seg["duration"] > 0
 
-    # (e) normalization block present and non-empty for all three scored signals
+    # (e) normalization block present and non-empty for all four scored signals
     normalization = doc["normalization"]
-    for key in ("sharpness", "exposure", "motion_smoothness"):
+    for key in ("sharpness", "exposure", "motion_smoothness", "composition"):
         assert key in normalization
         assert normalization[key]
 
-    # composition stays null/deferred in Milestone 1
-    assert normalization["composition"]
+    # composition is scored for real as of Milestone 2: every passing segment
+    # gets a genuine [0,1] value (not null), and the default weight profile
+    # ("default-v2") gives it a real nonzero weight.
     for seg in doc["segments"]:
-        assert seg["scores"]["composition"] is None
-    assert doc["scoring_weights"]["weights"]["composition"] == 0.0
+        assert seg["scores"]["composition"] is not None
+        assert 0.0 <= seg["scores"]["composition"] <= 1.0
+    assert doc["scoring_weights"]["weights"]["composition"] > 0.0
 
 
 def test_pipeline_gates_out_the_black_segment(tmp_path):

@@ -44,7 +44,12 @@ def compute_composite_score(
         w = signal_weights[signal]
         if w == 0.0 or score is None:
             continue
-        weighted_sum += w * score
+        # Every scorer module documents/enforces [0, 1] output by construction,
+        # but this function has no way to verify that invariant held for
+        # whatever score value it was actually handed -- clamp defensively so
+        # a future scorer bug (an out-of-range value) degrades to a bounded
+        # composite instead of silently propagating outside [0, 1].
+        weighted_sum += w * max(0.0, min(1.0, score))
         total_weight += w
 
     if total_weight == 0.0:

@@ -37,3 +37,13 @@ __pycache__/
 *.egg-info/
 /build/
 .pytest_cache/
+
+# Browser-automation scratch artifacts (e.g. reference-pack editorial_style
+# "live_playback_review" attempts) — never intentional deliverables, and a
+# frame-capture PNG of an all-rights-reserved source video is exactly the
+# kind of footage-adjacent artifact this project's reference pack must never
+# persist (spec Scope-out). Clean up loose ones at the repo root too.
+/.playwright-mcp/
+/seek*.png
+/short*.png
+/shot-initial.png

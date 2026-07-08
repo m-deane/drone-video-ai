@@ -1,9 +1,12 @@
 """Orchestrates segmentation -> scoring -> gating -> manifest emission for
-one input video (Capability 1, Milestone 1).
+one input video (Capability 1, Milestone 1 + Milestone 2).
 
-Composition scoring is not implemented in this milestone (see
-``common/manifest.py`` module docstring and plan.md's Milestone 2 section);
-every emitted segment's ``scores.composition`` is ``None`` by construction.
+Composition scoring is implemented as of Milestone 2 (see
+``scoring_composition.py``, ``common/manifest.py`` module docstring, and
+plan.md's Milestone 2 section): every emitted segment's ``scores.composition``
+is a real ``[0, 1]`` value, and the default scoring-weight profile
+(``weights.default_weights()``, now ``"default-v2"``) gives it a nonzero
+weight.
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ from drone_video_ai.highlight_extraction.scoring_motion_smoothness import (
     compute_raw_jerk_magnitude,
     invert_and_normalize,
 )
+from drone_video_ai.highlight_extraction.scoring_composition import compute_raw_composition
 from drone_video_ai.highlight_extraction.scoring_sharpness import (
     compute_raw_sharpness,
     min_max_normalize,
@@ -94,6 +98,7 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
     raw_sharpness: List[float] = []
     raw_exposure: List[float] = []
     raw_jerk: List[float] = []
+    raw_composition: List[float] = []
 
     for start, end in raw_segments:
         raw_sharpness.append(
@@ -103,13 +108,21 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
             compute_raw_exposure(video_path, start, end, max_samples=cfg.max_score_samples_per_segment)
         )
         raw_jerk.append(compute_raw_jerk_magnitude(motion_samples, start, end))
+        raw_composition.append(
+            compute_raw_composition(video_path, start, end, max_samples=cfg.max_score_samples_per_segment)
+        )
 
     normalized_sharpness = min_max_normalize(raw_sharpness)
     normalized_motion_smoothness = invert_and_normalize(raw_jerk)
-    # exposure is already normalized (1 - clipped_fraction) per-segment; no
-    # cross-segment min-max step, per plan.md's documented normalization method.
+    # exposure and composition are already normalized ([0,1] by construction,
+    # per each module's documented normalization method) -- no cross-segment
+    # min-max step for either, unlike sharpness/motion_smoothness.
     normalized_exposure = raw_exposure
+    normalized_composition = raw_composition
 
+    # "default-v2" (Milestone 2, gives composition a real nonzero weight) is
+    # now this function's own default parameter value -- see weights.py's
+    # module docstring -- so this call site is unchanged from Milestone 1.
     weights = default_weights()
 
     segments: List[Segment] = []
@@ -119,6 +132,7 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
         sharpness_score = normalized_sharpness[i]
         exposure_score = normalized_exposure[i]
         motion_smoothness_score = normalized_motion_smoothness[i]
+        composition_score = normalized_composition[i]
 
         gate_failures = evaluate_gates(
             video_path,
@@ -134,7 +148,7 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
             sharpness=sharpness_score,
             exposure=exposure_score,
             motion_smoothness=motion_smoothness_score,
-            composition=None,  # Milestone 1: never scored (see module docstring)
+            composition=composition_score,  # Milestone 2: scored (scoring_composition.py)
         )
 
         segment_id = f"seg_{i + 1:04d}"
@@ -156,7 +170,7 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
                 sharpness=sharpness_score,
                 exposure=exposure_score,
                 motion_smoothness=motion_smoothness_score,
-                composition=None,
+                composition=composition_score,
                 weights=weights,
             )
             segments.append(

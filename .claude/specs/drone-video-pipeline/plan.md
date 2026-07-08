@@ -309,11 +309,14 @@ entanglement risk); hard gates (`blackdetect`/`freezedetect` + min-sharpness/min
 floors); composite scoring with `composition` weight fixed at 0.0; versioned JSON manifest
 emission per the schema above; test suite.
 
-**Milestone 2 (deferred follow-up, not built now):**
+**Milestone 2 (built — see tasks.md 1.21-1.25):**
 Composition scoring — OpenCV `saliency`-module rule-of-thirds distance, vendored Hough-line
-horizon-tilt scorer, and (if subject-centroid detection proves necessary) MediaPipe object
-detection as the permissively-licensed alternative to YOLOv8. Schema changes are additive per
-the note above (`version` → 3, `composition` populated, its weight made nonzero).
+horizon-tilt scorer. MediaPipe object detection was evaluated and explicitly **not** integrated
+(the saliency centroid already supplies sufficient spatial weighting; see
+`scoring_composition.py` module docstring). Schema changes were additive as planned: `version`
+bumped to 3, `composition` populated with a real `[0,1]` value, and its weight made nonzero via
+a new `"default-v2"` named weight profile (`weights.py`) — the legacy `"default-v1"` profile is
+preserved unchanged for callers that explicitly request it.
 
 ### Capability 2 — Reel stitching
 
@@ -323,10 +326,11 @@ ffmpeg `xfade` transition rendering scoped to transition windows with `ffprobe`-
 color-metadata pinning; framemd5-based byte-exact verification test; forbidden-filter lint
 test (AC2.3).
 
-**Milestone 2 (deferred follow-up, not built now):**
+**Milestone 2 (built — see tasks.md 2.12-2.14):**
 OpenTimelineIO (`.otio`) export and CMX3600 EDL export via `otio-cmx3600-adapter`, plus the
-schema/structural validation check described in AC2.4. `opentimelineio` is NOT added to
-Milestone 1's `pyproject.toml` dependencies.
+schema/structural validation check described in AC2.4, implemented in `otio_export.py`.
+`opentimelineio`/`otio-cmx3600-adapter` are now real `pyproject.toml` dependencies (added only
+at this milestone, not Milestone 1, per the original plan).
 
 ### Capability 3 — Reference pack
 
@@ -341,9 +345,20 @@ true observed `license_category` as found, which for a typical YouTube upload wi
 category permits it); `retrieval_date` field plus a documented (written, not automated)
 30-day YouTube-API-metadata refresh/expiry process; schema + storage-layout tests.
 
-No further follow-up milestone for Capability 3 — bulk automation stays out of scope per the
-spec's own Scope (out) section and is not tracked as a deferred task here (it requires
-separate Tier C legal sign-off per Open Question 6, not just implementation time).
+**Post-Milestone-1 additions (repo-owner-directed, see tasks.md 3.8-3.9):** the pack has since
+grown from the single AC3.4 worked example to 39 individually-researched exemplars, and gained
+an `editorial_style` field (format/cut-count/shot-length/transition/pacing notes, honesty-tagged
+via `review_method`) closing a gap versus the spec's own Scope-in text (spec line 37) that was
+never given a schema slot in the original Milestone-1 pass. Both additions stay within the
+spec's Scope-out boundary on bulk/automated scraping — every record was individually sourced and
+verified, not bulk-downloaded — and do not themselves constitute the Tier C legal sign-off in
+Open Question 6, which remains open and applies only if CC-BY-NC-commercial-use or
+direct-creator-outreach scenarios actually arise.
+
+No further follow-up milestone for Capability 3 beyond the above — automating this into an
+*unattended* bulk pipeline stays out of scope per the spec's own Scope (out) section and is not
+tracked as a deferred task here (it requires separate Tier C legal sign-off per Open Question 6,
+not just implementation time).
 
 ## Open Questions — Resolution Status
 

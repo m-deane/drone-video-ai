@@ -8,16 +8,31 @@ storage-layout validator.
 ## Scope reminder (per spec Scope-out)
 
 - No automated scraping or bulk downloading of any kind is implemented or
-  permitted in this package.
-- Exactly one manually-curated worked example exists so far
-  (`data/reference_pack/exemplars/skypixel11_africa_unseen_ellisvanjason.json`),
-  per spec AC3.4. Scaling past one example requires separate Tier C
-  legal/licensing sign-off (spec Open Question 6) before any further
-  implementation.
+  permitted in this package -- every exemplar below is metadata + manual/
+  agent-researched derived analysis only; no video/image file is ever
+  downloaded or persisted for an `all-rights-reserved` record.
+- The AC3.4 minimum ("exactly one manually-curated worked example") was
+  satisfied by `skypixel11_africa_unseen_ellisvanjason.json`. Scaling past
+  that one example is an explicit, ongoing user-directed decision (each
+  further batch -- the 9-exemplar expansion, and any batch added since --
+  was built at the repo owner's direct request to continue growing this
+  pack) rather than an unattended/automated pipeline; it still respects the
+  spec's boundaries: no bulk footage downloading, no automated "stream and
+  discard" pipeline (every record is individually researched), and the pack
+  stays internal/unshared. The remaining Open Question 6 sign-off items this
+  does *not* cover (CC-BY-NC use in commercial contexts, direct creator
+  outreach) remain open should either scenario come up.
 - Actual footage-file retention (`local_media_path` non-null) is reserved
   strictly for exemplars individually verified as `cc-by` / `cc0` /
   `public-domain` / `owned` (spec line 38) -- never inferred from "it won an
   award" or "it's a public showcase". `storage.py` enforces this mechanically.
+- `editorial_style` (added when the pack was extended toward short-form,
+  Instagram-Reels-style content) captures qualitative pacing/cut/transition
+  observations, honestly tagged via `review_method` ("live_playback_review" /
+  "text_provenance_only" / "not_reviewed") -- see `schema.py`'s
+  `EditorialStyle` dataclass. This is the "derived analysis... plus
+  shot-length/cut/transition-style notes" the spec's Scope-in always
+  described but the original schema never added a field for.
 
 ## YouTube Data API metadata refresh/expiry process (spec AC3.3)
 

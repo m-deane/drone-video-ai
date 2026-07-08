@@ -9,14 +9,54 @@ description = "Drone video editing AI pipeline: highlight extraction, reel stitc
 requires-python = ">=3.10"
 readme = { text = "Drone video editing AI pipeline (Capability 1: highlight extraction, Milestone 1).", content-type = "text/plain" }
 
-# Milestone 1 runtime dependencies only. Explicitly excluded (spec Scope-out):
-# ultralytics/YOLOv8 (AGPL-3.0), pyiqa/IQA-PyTorch (non-commercial license),
-# any TransNetV2/PyTorch/TensorFlow shot-boundary dependency.
-# Deferred-milestone-only (do NOT add here): opentimelineio, otio-cmx3600-adapter.
+# Explicitly excluded (spec Scope-out): ultralytics/YOLOv8 (AGPL-3.0),
+# pyiqa/IQA-PyTorch (non-commercial license), any TransNetV2/PyTorch/TensorFlow
+# shot-boundary dependency.
+#
+# opencv-contrib-python (not plain opencv-python) is required from Milestone 2
+# onward: Capability 1's composition scoring uses cv2.saliency
+# (StaticSaliencySpectralResidual / StaticSaliencyFineGrained), which ships only
+# in the contrib build. Verified in-session: opencv-contrib-python 5.0.0.93
+# provides cv2.saliency; plain opencv-python does not. Same import name (`cv2`),
+# so this is intended as a drop-in replacement — do not depend on both directly.
+#
+# In practice a fresh install of this project's own dependencies still ends up
+# with BOTH distributions installed side by side anyway: verified in-session
+# that scenedetect 0.7 declares an unconditional, unqualified `opencv-python`
+# requirement (even via its `[opencv]` extra) that pip resolves regardless of
+# this project's own opencv-contrib-python pin -- there is no portable pip
+# mechanism to suppress a transitive dependency's own declared requirement.
+#
+# Whichever distribution's overlapping files "win" on disk is an unpinned,
+# install-order-dependent detail this dependency list does not control, and
+# this was NOT just a theoretical risk -- reproduced directly in this
+# session's own dev venv: installing plain opencv-python on top of an
+# already-working opencv-contrib-python broke cv2.saliency's concrete
+# algorithm classes (StaticSaliencySpectralResidual_create), even though the
+# `cv2.saliency` *namespace* remained importable (a stale partial shim) --
+# `hasattr(cv2, "saliency")` alone is NOT a sufficient check. The working fix,
+# confirmed in-session: `pip uninstall -y opencv-python opencv-contrib-python
+# && pip install --force-reinstall --no-deps opencv-contrib-python` (the
+# `--force-reinstall` matters -- a plain `pip install opencv-contrib-python`
+# can no-op if pip believes the pinned version is already satisfied, even
+# though the physical compiled files are broken). `scoring_composition.py`
+# itself checks for the concrete factory function (not just the namespace) at
+# import time and fails fast with this exact recipe if a future environment
+# ever lands in the broken state.
+#
+# opentimelineio + otio-cmx3600-adapter added for Capability 2 Milestone 2
+# (.otio / CMX3600 EDL export). Verified in-session: opentimelineio>=0.16 ships
+# a built-in "cmx_3600" adapter already (see plugins.manifest.load_manifest()),
+# so otio-cmx3600-adapter may be redundant on current OTIO versions — kept as an
+# explicit dependency anyway for older-OTIO compatibility and because it's what
+# plan.md names; do not remove without re-verifying the builtin adapter covers
+# the same CMX3600 EDL export path.
 dependencies = [
-    "opencv-python>=4.8",
+    "opencv-contrib-python>=4.8",
     "scenedetect[opencv]>=0.6",
     "numpy>=1.24",
+    "opentimelineio>=0.16",
+    "otio-cmx3600-adapter>=1.0",
 ]
 
 [project.optional-dependencies]

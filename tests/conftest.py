@@ -141,6 +141,78 @@ def make_motion_clip(
         writer.release()
 
 
+def make_bright_region_clip(
+    path: Path,
+    center: tuple,
+    duration: float = 2.0,
+    size=(320, 240),
+    fps: int = 25,
+    region_size: int = 30,
+) -> None:
+    """Generate a clip with a single bright square region against a dark
+    background, centered at pixel coordinate ``center`` (cx, cy), via
+    cv2.VideoWriter -- following ``make_motion_clip``'s precedent of using
+    direct frame drawing rather than ffmpeg lavfi sources, since composition
+    scoring (``scoring_composition.py``) needs exact, reproducible control
+    over where the single salient region sits relative to the frame's
+    rule-of-thirds points, which lavfi source filters cannot provide."""
+    w, h = size
+    cx, cy = center
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
+    if not writer.isOpened():
+        raise RuntimeError(f"Could not open VideoWriter for {path}")
+
+    n_frames = int(duration * fps)
+    try:
+        for _ in range(n_frames):
+            frame = np.full((h, w, 3), 40, dtype=np.uint8)
+            x0, y0 = max(0, cx - region_size), max(0, cy - region_size)
+            x1, y1 = min(w, cx + region_size), min(h, cy + region_size)
+            cv2.rectangle(frame, (x0, y0), (x1, y1), (230, 230, 230), -1)
+            writer.write(frame)
+    finally:
+        writer.release()
+
+
+def make_horizon_clip(
+    path: Path,
+    tilt_degrees: float = 0.0,
+    duration: float = 2.0,
+    size=(320, 240),
+    fps: int = 25,
+) -> None:
+    """Generate a clip split into a light "sky" half and a dark "ground"
+    half by a straight line pivoting around the frame center at
+    ``tilt_degrees`` from horizontal, via cv2.VideoWriter -- same rationale
+    as ``make_bright_region_clip`` above: exact, reproducible control over
+    the line's angle is needed to test ``scoring_composition.py``'s
+    horizon-tilt levelness sub-scorer, which lavfi sources cannot provide."""
+    w, h = size
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
+    if not writer.isOpened():
+        raise RuntimeError(f"Could not open VideoWriter for {path}")
+
+    n_frames = int(duration * fps)
+    theta = np.radians(tilt_degrees)
+    slope = np.tan(theta)
+    cy = h / 2.0
+    xs = np.arange(w)
+    line_y = cy + slope * (xs - w / 2.0)
+
+    try:
+        for _ in range(n_frames):
+            frame = np.zeros((h, w, 3), dtype=np.uint8)
+            for x in range(w):
+                ly = int(line_y[x])
+                frame[: max(0, ly), x, :] = 220  # sky
+                frame[max(0, ly) :, x, :] = 30  # ground
+            writer.write(frame)
+    finally:
+        writer.release()
+
+
 @pytest.fixture
 def clip_factory(tmp_path):
     """Returns a dict of helper functions bound to this test's tmp_path, so
@@ -153,4 +225,6 @@ def clip_factory(tmp_path):
         "overexposed": make_overexposed_clip,
         "multiscene": make_multiscene_clip,
         "motion": make_motion_clip,
+        "bright_region": make_bright_region_clip,
+        "horizon": make_horizon_clip,
     }

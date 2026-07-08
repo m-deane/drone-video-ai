@@ -12,10 +12,12 @@ Field-by-field mapping back to spec AC 71:
 ``source_url``, ``platform``, ``license_category``, ``title``, ``creator``,
 ``duration``, ``retrieval_date``, per-signal + composite quality scores
 (matching Capability 1's ``sharpness``/``exposure``/``motion_smoothness``/
-``composition``/``composite_score`` fields and its Milestone-1 convention of
-``composition: null`` -- see
-``drone_video_ai.common.manifest.SegmentScores``), and
-``award_or_showcase_provenance`` (nullable).
+``composition``/``composite_score`` fields -- see
+``drone_video_ai.common.manifest.SegmentScores`` -- though this is a distinct,
+independently-populated schema: an exemplar's ``composition`` here stays
+``null`` until that specific exemplar is individually reviewed enough to
+populate it, regardless of what Capability 1's own composition-scoring
+milestone status is), and ``award_or_showcase_provenance`` (nullable).
 
 ``local_media_path`` (nullable) additionally encodes AC 72/73's storage rule:
 it must stay ``null`` unless the exemplar's license genuinely permits local
@@ -34,13 +36,29 @@ it records whether ``scores`` were produced by actually running Capability
 review without access to the source file (``"manually_estimated"``) -- per
 this task's instruction not to present manually-estimated numbers as if they
 were measured.
+
+``editorial_style`` is likewise not part of the spec's minimum AC71 field
+list, but extends the same "derived analysis" idea the spec's own Scope-in
+text calls for (spec line 37: "this project's own derived analysis ... plus
+shot-length/cut/transition-style notes") -- a schema slot for this was never
+actually added when Capability 3 was first implemented; this closes that
+gap. It captures editorial/pacing characteristics (short-form-reel vs.
+long-form-cinematic, approximate cut count/shot length, transition styles,
+pacing notes) so the pack can inform Capability 2's stitching heuristics,
+not just Capability 1's quality-scoring heuristics. Like ``scores_provenance``,
+it is honest about its own provenance via ``review_method``: ``"not_reviewed"``
+(default -- no editorial analysis attempted), ``"text_provenance_only"``
+(inferred from creator description/press coverage, not actual playback), or
+``"live_playback_review"`` (an actual human/agent watched or scrubbed the
+video). Never presented as frame-accurate measurement -- these are qualitative
+observations, same epistemic tier as ``scores_provenance: "manually_estimated"``.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, List, Optional
 
 # Full license-category enum per spec AC 71.
 LICENSE_CATEGORIES = {
@@ -68,6 +86,17 @@ LOCAL_MEDIA_PERMITTED_LICENSES = {"cc-by", "cc0", "public-domain", "owned"}
 
 SCORES_PROVENANCE_VALUES = {"computed", "manually_estimated"}
 
+# editorial_style.format: the axis this pack uses to track content-genre
+# variety (spec's "professional editing" reference goal) -- deliberately not
+# part of LICENSE_CATEGORIES/PLATFORMS since it describes editing style, not
+# rights or hosting. None is valid for records not yet format-classified
+# (e.g. the still-photo exemplar, or any not-yet-reviewed video).
+EDITORIAL_FORMAT_VALUES = {"short-form-reel", "long-form-cinematic"}
+
+# editorial_style.review_method: honesty tag, mirrors scores_provenance's
+# computed/manually_estimated distinction -- see module docstring.
+REVIEW_METHOD_VALUES = {"live_playback_review", "text_provenance_only", "not_reviewed"}
+
 EXEMPLAR_RECORD_VERSION = 1
 
 
@@ -76,12 +105,54 @@ class ExemplarValidationError(ValueError):
 
 
 @dataclass
+class EditorialStyle:
+    """Qualitative editing/pacing observations for one exemplar -- see the
+    module docstring's ``editorial_style`` section for the honesty contract
+    ``review_method`` encodes. All fields except ``review_method`` are
+    ``None``/empty until an actual review (playback or text-based) populates
+    them; never fill these in as a guess dressed up as an observation."""
+
+    format: Optional[str] = None  # "short-form-reel" | "long-form-cinematic" | None
+    estimated_cut_count: Optional[int] = None
+    avg_shot_length_seconds: Optional[float] = None
+    transition_styles_observed: List[str] = field(default_factory=list)
+    pacing_notes: Optional[str] = None
+    review_method: str = "not_reviewed"
+
+    def to_dict(self) -> dict:
+        return {
+            "format": self.format,
+            "estimated_cut_count": self.estimated_cut_count,
+            "avg_shot_length_seconds": self.avg_shot_length_seconds,
+            "transition_styles_observed": list(self.transition_styles_observed),
+            "pacing_notes": self.pacing_notes,
+            "review_method": self.review_method,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "EditorialStyle":
+        return cls(
+            format=d.get("format"),
+            estimated_cut_count=d.get("estimated_cut_count"),
+            avg_shot_length_seconds=d.get("avg_shot_length_seconds"),
+            transition_styles_observed=list(d.get("transition_styles_observed", [])),
+            pacing_notes=d.get("pacing_notes"),
+            review_method=d.get("review_method", "not_reviewed"),
+        )
+
+
+@dataclass
 class ExemplarScores:
     sharpness: Optional[float]
     exposure: Optional[float]
     motion_smoothness: Optional[float]
     composite_score: Optional[float]
-    composition: Optional[float] = None  # always None -- Capability 1 Milestone 1 convention
+    composition: Optional[float] = None  # null until an exemplar is individually
+    # reviewed enough to populate it; NOT tied to Capability 1's own
+    # composition-scoring milestone status (Capability 1's scores.composition
+    # is populated for real as of its Milestone 2 -- see common/manifest.py --
+    # but that is a separate, unrelated schema from this reference-pack
+    # ExemplarScores).
 
     def to_dict(self) -> dict:
         return {
@@ -117,6 +188,7 @@ class ExemplarRecord:
     local_media_path: Optional[str] = None
     scores_provenance: str = "manually_estimated"
     notes: Optional[str] = None
+    editorial_style: EditorialStyle = field(default_factory=EditorialStyle)
     version: int = EXEMPLAR_RECORD_VERSION
 
     def to_dict(self) -> dict:
@@ -134,6 +206,7 @@ class ExemplarRecord:
             "local_media_path": self.local_media_path,
             "scores_provenance": self.scores_provenance,
             "notes": self.notes,
+            "editorial_style": self.editorial_style.to_dict(),
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -155,6 +228,7 @@ class ExemplarRecord:
             local_media_path=d.get("local_media_path"),
             scores_provenance=d.get("scores_provenance", "manually_estimated"),
             notes=d.get("notes"),
+            editorial_style=EditorialStyle.from_dict(d.get("editorial_style", {})),
         )
 
     @classmethod
@@ -273,3 +347,25 @@ def validate_exemplar_record(doc: dict) -> None:
     violation = check_local_media_storage_rule(doc)
     if violation is not None:
         raise ExemplarValidationError(f"exemplar: storage-layout rule violated -- {violation}")
+
+    # editorial_style is optional (not in EXEMPLAR_RECORD_SCHEMA["required"],
+    # same tier as scores_provenance/notes -- see module docstring), but if
+    # present its shape and enums are validated.
+    editorial_style = doc.get("editorial_style")
+    if editorial_style is not None:
+        if not isinstance(editorial_style, dict):
+            raise ExemplarValidationError("exemplar.editorial_style must be an object or absent")
+        if editorial_style.get("format") not in EDITORIAL_FORMAT_VALUES | {None}:
+            raise ExemplarValidationError(
+                f"exemplar.editorial_style.format must be one of {sorted(EDITORIAL_FORMAT_VALUES)} or null"
+            )
+        review_method = editorial_style.get("review_method", "not_reviewed")
+        if review_method not in REVIEW_METHOD_VALUES:
+            raise ExemplarValidationError(
+                f"exemplar.editorial_style.review_method must be one of {sorted(REVIEW_METHOD_VALUES)}"
+            )
+        transitions = editorial_style.get("transition_styles_observed", [])
+        if not isinstance(transitions, list) or not all(isinstance(t, str) for t in transitions):
+            raise ExemplarValidationError(
+                "exemplar.editorial_style.transition_styles_observed must be a list of strings"
+            )

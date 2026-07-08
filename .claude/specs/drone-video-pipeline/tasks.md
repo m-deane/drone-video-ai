@@ -142,26 +142,36 @@ unrelated tasks into one commit.
       min/max bounds; (e) `normalization` block is present and non-empty for all three scored
       signals. *(C1.1, C1.4, C1.5.)*
 
-### Milestone 2 (deferred follow-up, not built now)
+### Milestone 2 (built)
 
-1.21. **[deferred]** Implement composition scoring: OpenCV `saliency`-module rule-of-thirds
-      distance scorer. *(Would satisfy the `composition` portion of C1.1.)*
+1.21. **[done]** Implemented composition scoring: OpenCV `saliency`-module (`StaticSaliencySpectralResidual`)
+      rule-of-thirds distance scorer, in `scoring_composition.py`. *(Satisfies the `composition`
+      portion of C1.1.)*
 
-1.22. **[deferred]** Implement a vendored (not pip-installed) Hough-line horizon-tilt scorer
-      for aerial-specific framing, combined into the composition score from 1.21.
+1.22. **[done]** Implemented a vendored (not pip-installed) Hough-line horizon-tilt scorer
+      for aerial-specific framing (`cv2.Canny` + `cv2.HoughLinesP`), combined into the
+      composition score from 1.21 via an unweighted 0.5/0.5 average — see
+      `scoring_composition.py` module docstring for the full derivation and the
+      SpectralResidual-vs-FineGrained benchmark that motivated the algorithm choice.
 
-1.23. **[deferred]** Evaluate whether MediaPipe's object detector is needed for
-      subject-centroid detection to support composition scoring; integrate if so (explicitly
-      chosen over YOLOv8/Ultralytics, which stays excluded per spec Scope-out).
+1.23. **[done]** Evaluated MediaPipe's object detector for subject-centroid detection;
+      **decision: not integrated** — the saliency-map centroid already supplies sufficient
+      spatial weighting for the rule-of-thirds sub-score without needing to identify *what*
+      the salient region is, so an added dependency was not justified (see
+      `scoring_composition.py`'s "MediaPipe evaluation" section). YOLOv8/Ultralytics remains
+      excluded per spec Scope-out, unchanged.
 
-1.24. **[deferred]** Bump `scoring_weights.weights.composition` to a nonzero default in
-      `weights.py`, populate `scores.composition` in the manifest, update
-      `normalization.composition`, and bump manifest `"version"` to 3 (composite-score
-      computation changes for consumers, per plan.md).
+1.24. **[done]** Bumped `scoring_weights.weights.composition` to a nonzero default: `weights.py`
+      now has two named, immutable profiles — `"default-v1"` (legacy, composition=0.0,
+      preserved unchanged) and `"default-v2"` (new module-wide default, equal 0.25 quarters
+      across all four signals). `scores.composition` and `normalization.composition` are
+      populated for real in the manifest, and `MANIFEST_VERSION` bumped from 2 to 3 per
+      plan.md's "Milestone 2 (composition scoring) changes to this schema" note.
 
-1.25. **[deferred]** Add `tests/highlight_extraction/test_scoring_composition.py` validating
-      the new scorer against synthetic well-composed vs. poorly-composed / tilted-horizon
-      fixtures.
+1.25. **[done]** Added `tests/highlight_extraction/test_scoring_composition.py` (via new
+      `make_bright_region_clip`/`make_horizon_clip` fixtures in `tests/conftest.py`) validating
+      the rule-of-thirds and horizon-tilt sub-scorers against synthetic well-composed vs.
+      poorly-composed / tilted-horizon fixtures.
 
 ---
 
@@ -234,18 +244,22 @@ unrelated tasks into one commit.
       synthetic multi-clip edit manifest, assert the paced manifest's total duration is
       within ±0.5s (or the configured tolerance) of the target. *(C2.5.)*
 
-### Milestone 2 (deferred follow-up, not built now)
+### Milestone 2 (built)
 
-2.12. **[deferred]** Add `opentimelineio` + `otio-cmx3600-adapter` to dependencies; implement
-      an `EditManifest` → `.otio` timeline exporter. *(Would satisfy the `.otio` half of C2.4.)*
+2.12. **[done]** Added `opentimelineio>=0.16` + `otio-cmx3600-adapter>=1.0` to `pyproject.toml`
+      dependencies; implemented `otio_export.py`'s `edit_manifest_to_otio`/`export_otio`:
+      `EditManifest` → `.otio` timeline exporter. *(Satisfies the `.otio` half of C2.4.)*
 
-2.13. **[deferred]** Implement `.otio` → CMX3600 EDL export via `otioconvert`/
-      `otio-cmx3600-adapter`, plus a schema/structural validation check runnable in CI.
-      *(Would satisfy the EDL-export half of C2.4; actual NLE round-trip stays a manual
-      acceptance step per the spec's own text, spec line 67.)*
+2.13. **[done]** Implemented `.otio` → CMX3600 EDL export (`export_edl`, via the installed
+      `otio-cmx3600-adapter`), plus `validate_export`'s schema/structural validation check
+      (clip-count + total-duration-within-tolerance, read back via `otio.adapters.read_from_file`)
+      runnable in CI with no NLE involved. *(Satisfies the EDL-export half of C2.4; actual NLE
+      round-trip remains a manual acceptance step per the spec's own text, spec line 67.)*
 
-2.14. **[deferred]** Add `tests/reel_stitching/test_otio_export.py` covering the
-      schema/structural validation from 2.13.
+2.14. **[done]** Added `tests/reel_stitching/test_otio_export.py` covering the
+      schema/structural validation from 2.13, plus the transition half-shrink accounting,
+      all-cut plain-adjacency case, and `OTIOExportError` propagation for
+      transition-too-long-for-entry inputs.
 
 ---
 
@@ -301,9 +315,31 @@ unrelated tasks into one commit.
      placed stray file under `media/`) asserting the validator correctly *fails* that case.
      *(C3.2 — tests both the true-positive and the true-negative path.)*
 
-No Milestone 2 section for Capability 3 — per plan.md, scaling beyond the single worked
-example requires separate Tier C legal sign-off (spec Open Question 6), not further
-implementation tasks, and is intentionally not tracked here.
+3.8. **[done, post-Milestone-1 addition]** Added `editorial_style` (an `EditorialStyle`
+     dataclass: `format`, `estimated_cut_count`, `avg_shot_length_seconds`,
+     `transition_styles_observed`, `pacing_notes`, `review_method`) to `schema.py` and its
+     validator — this closes a gap versus spec Scope-in line 37 ("this project's own derived
+     analysis ... plus shot-length/cut/transition-style notes"), which had no schema field for
+     it until now. Optional field, not part of AC71's required minimum; honesty-tagged via
+     `review_method` (`"not_reviewed"` / `"text_provenance_only"` / `"live_playback_review"`)
+     following the same provenance-honesty convention as `scores_provenance`. *(Extends C3.1.)*
+
+3.9. **[done, post-Milestone-1 addition, repo-owner-directed]** Expanded the reference pack
+     from the single AC3.4 worked example to 39 individually-researched exemplars (see
+     `data/reference_pack/exemplars/` and `reference_pack/README.md`'s "Scope reminder" section
+     for the per-batch rationale). Each record was sourced and verified individually (no bulk
+     scraping/downloading — every `all-rights-reserved` record has `local_media_path: null` and
+     no matching file under `media/`, mechanically enforced by `storage.py` and re-confirmed by
+     `tests/reference_pack/test_storage_layout_no_arr_files.py`), so this stays within the
+     spec's Scope-out boundary on **bulk automation**. It does NOT itself constitute the
+     Tier C legal/licensing sign-off items (a)-(e) in spec Open Question 6 (CC-BY-NC commercial
+     use, direct creator outreach) — those remain open and are only triggered if either scenario
+     is actually encountered, per plan.md Open Question 6's original resolution.
+
+No further Milestone 2 tasks tracked for Capability 3 beyond 3.8/3.9 above — per plan.md,
+scaling past manually-researched individual exemplars into an *automated/unattended* bulk
+pipeline still requires separate Tier C legal sign-off (spec Open Question 6) before any further
+implementation, and is intentionally not tracked here.
 
 ---
 

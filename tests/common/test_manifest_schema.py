@@ -49,9 +49,13 @@ def _build_sample_manifest() -> HighlightManifest:
     )
 
 
-def test_manifest_version_is_2():
+def test_manifest_version_is_3():
+    # Bumped from 2 to 3 in Milestone 2: composition scoring changes the
+    # composite-score computation for consumers (see common/manifest.py
+    # module docstring / plan.md's "Milestone 2 (composition scoring)
+    # changes to this schema" note).
     manifest = _build_sample_manifest()
-    assert manifest.version == 2
+    assert manifest.version == 3
 
 
 def test_manifest_to_json_from_json_round_trip():

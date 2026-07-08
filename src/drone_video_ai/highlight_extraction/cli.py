@@ -1,5 +1,6 @@
-"""``drone-highlights`` CLI entrypoint: run the Capability 1 Milestone 1
-pipeline against a video file and emit a JSON highlight manifest."""
+"""``drone-highlights`` CLI entrypoint: run the Capability 1 pipeline
+(Milestone 1 + Milestone 2) against a video file and emit a JSON highlight
+manifest."""
 
 from __future__ import annotations
 
@@ -20,10 +21,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="drone-highlights",
         description=(
-            "Capability 1 (Highlight Extraction), Milestone 1: segment a raw drone "
-            "video into quality-scored candidate highlight clips and emit a JSON "
-            "manifest. Composition scoring is deferred to Milestone 2 -- every "
-            "emitted segment's scores.composition is null."
+            "Capability 1 (Highlight Extraction): segment a raw drone video into "
+            "quality-scored candidate highlight clips and emit a JSON manifest. "
+            "Per-segment scores include sharpness, exposure, motion_smoothness, "
+            "and (as of Milestone 2) composition."
         ),
     )
     parser.add_argument("input", help="Path to the input video file.")

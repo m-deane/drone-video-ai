@@ -8,13 +8,18 @@ future input source) exactly as fixed in
 legacy ``post_processing`` pixel-editing block entirely and adds per-signal
 quality scores.
 
-``composition`` is always ``null`` / ``0.0``-weighted in this schema version
-(Milestone 1). Composition scoring (OpenCV ``saliency`` rule-of-thirds +
-Hough-line horizon-tilt) is deferred to Milestone 2 per plan.md; this is not a
-stub -- it is a documented, deliberate omission with an explicit schema slot
-reserved for additive population later (see plan.md's "Milestone 2 (composition
-scoring) changes to this schema" note: adding real values bumps this to
-version 3, not silently overwriting version 2).
+``composition`` was always ``null`` / ``0.0``-weighted in schema version 2
+(Milestone 1), since composition scoring was deferred to Milestone 2 per
+plan.md. As of Milestone 2 (tasks.md 1.24), composition scoring is real
+(``highlight_extraction/scoring_composition.py``): ``scores.composition`` is
+populated with a genuine ``[0, 1]`` value for every scored segment, and
+``scoring_weights.weights.composition`` carries a real nonzero weight
+(``highlight_extraction/weights.py``'s ``"default-v2"`` profile). Per
+plan.md's "Milestone 2 (composition scoring) changes to this schema" note,
+this composite-score-affecting change bumps ``MANIFEST_VERSION`` from 2 to
+3 -- not a silent, purely-additive change to version 2, since consumers
+reading ``composite_score`` now see a value computed over four signals
+instead of three.
 """
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-MANIFEST_VERSION = 2
+MANIFEST_VERSION = 3
 
 
 @dataclass
@@ -68,7 +73,8 @@ class ScoringWeights:
     sharpness: float
     exposure: float
     motion_smoothness: float
-    composition: float = 0.0  # MUST stay 0.0 in Milestone 1 -- see module docstring.
+    composition: float = 0.0  # 0.0 in the legacy "default-v1" (Milestone 1) profile;
+    # real nonzero weight in "default-v2" (Milestone 2) -- see weights.py.
 
     def to_dict(self) -> dict:
         return {
@@ -120,7 +126,12 @@ DEFAULT_NORMALIZATION = {
     "sharpness": "in-video min-max over sampled frames -> [0,1]",
     "exposure": "1 - (clipped-pixel fraction from histogram) -> [0,1]",
     "motion_smoothness": "in-video min-max over inverse jerk magnitude -> [0,1]",
-    "composition": "not scored in this schema version (Milestone 2, deferred)",
+    "composition": (
+        "0.5 * (saliency-weighted-centroid distance to nearest rule-of-thirds "
+        "point, normalized by max corner distance sqrt((w/3)^2+(h/3)^2), inverted) "
+        "+ 0.5 * (vendored Hough-line horizon-tilt levelness, 1 - |tilt_deg|/20 "
+        "floored at 0) -> [0,1]; see scoring_composition.py"
+    ),
 }
 
 
@@ -129,7 +140,9 @@ class SegmentScores:
     sharpness: float
     exposure: float
     motion_smoothness: float
-    composition: Optional[float] = None  # always None in Milestone 1 output
+    composition: Optional[float] = None  # populated with a real [0,1] score as of
+    # Milestone 2 (scoring_composition.py); stays Optional[float] for backward
+    # compatibility with legacy (version 2) manifests, which always had None here.
 
     def to_dict(self) -> dict:
         return {
