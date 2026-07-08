@@ -1,7 +1,7 @@
 {
   "version": 2,
   "source_file": {
-    "path": "data/raw/DJI_0355/split_001_s70.mp4",
+    "path": "_01_examples/DJI_0355/split_001_s70.mp4",
     "name": "split_001_s70.mp4",
     "duration": 15.0,
     "width": 1280,
