@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "source_url": "https://www.youtube.com/watch?v=9CtKKb8gY2A",
+  "platform": "youtube",
+  "license_category": "all-rights-reserved",
+  "title": "The Incredible Beauty of Issyk Kul (8K Drone Footage)",
+  "creator": "Onzil",
+  "duration": null,
+  "retrieval_date": "2026-07-20",
+  "scores": {
+    "sharpness": 0.75,
+    "exposure": 0.74,
+    "motion_smoothness": 0.76,
+    "composition": null,
+    "composite_score": 0.75
+  },
+  "award_or_showcase_provenance": null,
+  "local_media_path": null,
+  "scores_provenance": "manually_estimated",
+  "notes": "BAYESIAN-PROCESS CANDIDATE (4th Kyrgyzstan record this session, added under this run's confidence-shift test, not a fixed quota). PRIOR at the start of this location's evidence pass: given the 3 Kyrgyzstan records already added earlier this session (explorertheworld4k-kyrgyzstan-wild-beauty.json, general-landscape, 0.74; jishinnraj-kyrgyzstan-sky-bridge.json, Sky Bridge landmark, 0.71, flagged lowest-confidence; onemanwolfpack-kyrgyzstan-bishkek-aerial.json, Bishkek urban aerial, 0.7633, strongly corroborated), confidence in this location's coverage was already MODERATE-HIGH -- good subject-format diversity across 3 records, but no mountain-lake angle represented despite Issyk-Kul being, alongside Song-Kul, one of Kyrgyzstan's two single most photographed/droned natural landmarks. Stated prior: 'a 4th strong, distinctly-themed Issyk-Kul candidate is plausibly findable and would meaningfully round out subject coverage, but is not guaranteed given this batch's earlier Song-Kul search already surfaced a genre-mismatched tour-company channel rather than a dedicated drone creator.' EVIDENCE: WebSearch ('Issyk-Kul lake Kyrgyzstan drone FPV cinematic youtube -shorts') surfaced this candidate among mostly stock-marketplace results (Envato, Videvo, Dronestagram) -- itself a data point echoing the earlier Song-Kul search pattern (this specific-landmark angle skews toward stock/tourism content over dedicated-creator uploads more than the pack's other Kyrgyzstan angles did). Verified via WebFetch of the YouTube oEmbed endpoint (https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=9CtKKb8gY2A&format=json), which returned title='The Incredible Beauty of Issyk Kul (8K Drone Footage)', author_name='Onzil', author_url='https://www.youtube.com/@Onzil' -- confirms a real, currently-public video, and the title's own '8K' claim is a notable, differentiated production-value signal versus this pack's mostly-'4K'-claiming Kyrgyzstan entries. A WebFetch of the channel-about page (https://www.youtube.com/channel/UC_CY-ALtpvirUfGzm56Vq1g/about) returned a real, if brief, corroborating description: 'Onzil is a 4K travel content channel featuring \"breathtaking\" aerial and ground-level footage... exploring global destinations through drone cinematography, scenic drives, nature walks, and hiking adventures' -- confirms a genuine, dedicated, multi-destination travel/drone channel (matching the profile of explorertheworld4k-kyrgyzstan-wild-beauty.json's creator tier) rather than a one-off upload, though no numeric subscriber/view count was found via WebSearch ('\"Onzil\" youtube channel drone 8K cinematic subscribers' surfaced only the bare channel URL, no third-party analytics or press). The watch-page fetch (for CC-license/upload-date/duration) returned HTTP 429 (rate-limited), consistent with essentially every YouTube watch-page attempt this session; not retried further, so license_category stays the conservative all-rights-reserved default. POSTERIOR after this candidate: confidence in Kyrgyzstan's coverage shifted meaningfully UPWARD -- this candidate adds genuine, non-redundant subject diversity (mountain-lake, the 4th distinct angle alongside general-landscape/landmark/urban), completing what reads as a well-rounded 4-way subject spread for a location that had zero coverage at the start of this session. STOPPING DECISION: this location's evidence pass stops here. A marginal 5th Kyrgyzstan candidate was judged unlikely to shift confidence further without diminishing returns (subject space is now well-covered; further search would likely re-surface similar 'cinematic drone footage of Kyrgyzstan landscape' content already represented in kind by explorertheworld4k), so per this task's stopping-rule switch variable this location is treated as sufficiently evidenced without exhausting a fixed count. `composite_score` is NOT a call to the repo's real `compute_composite_score`/`default_weights()` (no shell access to the user's local Python environment this session); computed via the documented equal-weighted-mean-of-present-signals formula in this session's own Python: (0.75+0.74+0.76)/3 = 0.75 exactly. `composition` stays null.",
+  "editorial_style": {
+    "format": "long-form-cinematic",
+    "estimated_cut_count": null,
+    "avg_shot_length_seconds": null,
+    "transition_styles_observed": [],
+    "pacing_notes": "Not independently reviewed via playback this session. 'long-form-cinematic' is inferred from the title convention (a landscape-oriented single-landmark '8K Drone Footage' piece, standard watch URL, not /shorts/) rather than an actual viewing -- correct if a live-playback review finds otherwise.",
+    "review_method": "text_provenance_only"
+  }
+}

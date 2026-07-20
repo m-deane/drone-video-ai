@@ -2,6 +2,11 @@
 
 Reference for skill disambiguation when multiple skills could match or no hookify rule fires.
 
+> **Executing a task once it is routed?** See `.claude/manuals/INDEX.md` — tool-grounded
+> operational runbooks (preconditions, if/then decision procedures, runnable verification gates,
+> escalation criteria) that make each domain's tasks reproducible to Fable-level accuracy. The
+> manuals' routing table mirrors the intent clusters below.
+
 ## Intent Clusters
 
 | Cluster | Core skills | Discriminating signals | Negative signals (NOT this cluster) |

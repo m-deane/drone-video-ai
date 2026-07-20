@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "source_url": "https://www.youtube.com/watch?v=jO07u6S3jdU",
+  "platform": "youtube",
+  "license_category": "all-rights-reserved",
+  "title": "Kyrgyzstan 4K - Wild Beauty of Central Asia | Cinematic Drone Footage",
+  "creator": "Explore The World 4K",
+  "duration": null,
+  "retrieval_date": "2026-07-20",
+  "scores": {
+    "sharpness": 0.73,
+    "exposure": 0.74,
+    "motion_smoothness": 0.75,
+    "composition": null,
+    "composite_score": 0.74
+  },
+  "award_or_showcase_provenance": null,
+  "local_media_path": null,
+  "scores_provenance": "manually_estimated",
+  "notes": "DRAFT CANDIDATE -- produced in a cloud (Cowork) session while the bridge to the user's local machine was intermittently down, so this record has NOT been cross-checked against the live data/reference_pack/exemplars/ directory for duplicates or written into the repo yet; treat as pending review, not committed fact. Sourced to fill the Kyrgyzstan gap flagged during this project's own reference-pack review (no Kyrgyzstan exemplar found among ~45-49 existing records as of 2026-07-20). Verified this session via WebFetch of the YouTube oEmbed endpoint (https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=jO07u6S3jdU&format=json), which returned title='Kyrgyzstan 4K - Wild Beauty of Central Asia | Cinematic Drone Footage', author_name='Explore The World 4K', author_url='https://www.youtube.com/@exploretheworld4k', provider_name='YouTube' -- confirms this is a real, currently-public video with this exact title/creator. A follow-up WebFetch of the watch page itself (to check for an explicit Creative Commons marking, upload date, duration, and description text) returned HTTP 429 (rate-limited) on the first attempt and again on a sequential retry; per this session's tool policy, further retries or a bash/curl workaround were not attempted. Consequently `license_category` is set to the conservative default 'all-rights-reserved' on ABSENCE of a positive CC confirmation (consistent with this project's stated default), but this is a weaker verification than the pack's gold-standard examples (e.g. chrisxgxc-the-last-dronie.json, where the watch-page fetch succeeded and explicitly returned copyright text) -- re-attempt the watch-page check when reachable, ideally from a session with shell/curl access to a non-rate-limited path, before treating this as fully verified. `duration` stays null for the same reason (never obtained). A WebSearch this session ('\"Explore The World 4K\" youtube channel subscribers') found only the channel's own YouTube pages, no third-party subscriber count or press coverage -- the channel is confirmed real and has produced at least one other similarly-titled video ('Kyrgyzstan 4K Drone | Unreal Landscapes from Above', watch?v=FN5gxicirl8, also verified via oEmbed this session but not used here to avoid a same-creator duplicate in this small batch), consistent with a dedicated multi-country cinematic-travel-drone channel, but no independently corroborated reach/follower signal was found -- do not infer one. `award_or_showcase_provenance` is left null: no juried contest, broadcaster, or festival attribution was found in this session's research. `scores` (sharpness/exposure/motion_smoothness) are `scores_provenance: manually_estimated` judgments, NOT measurements from Capability 1's real scoring functions -- no source file was downloaded to run those against, per the no-bulk-download constraint. Calibration: placed near this pack's 'un-curated-but-consistent travel-drone channel' tier (flaviufpv-madeira-fanal-forest-fpv.json's 0.72/0.72, instagram-elisacappelletti-monument-valley.json's 0.74/0.73) rather than its contest-verified top tier (skypixel11_africa_unseen's 0.8/0.8, dronestagram-feature.json's 0.85/0.8), reflecting a real, working channel with no confirmed independent reach or award signal. `composite_score` is NOT a call to this repo's actual `compute_composite_score`/`default_weights()` functions -- this session had no shell access to the user's local Python environment when this record was drafted. It was instead computed by running an equivalent equal-weighted-mean-of-present-signals formula (matching the documented behavior of default-v1/default-v2 when composition is None, per this session's earlier reading of pshepfpv-iceland-glaciers-fpv.json and chrisxgxc-the-last-dronie.json) via this session's own Python: (0.73+0.74+0.75)/3 = 0.7399999999999999, rounded to 0.74. Re-run through the real repo function before treating this figure as certified. `composition` stays null, matching Milestone 1 convention.",
+  "editorial_style": {
+    "format": "long-form-cinematic",
+    "estimated_cut_count": null,
+    "avg_shot_length_seconds": null,
+    "transition_styles_observed": [],
+    "pacing_notes": "Not independently reviewed via playback this session (no live-playback/browser-automation tool was used). Classified as 'long-form-cinematic' rather than 'short-form-reel' based on the title/format convention ('4K ... Cinematic Drone Footage', a landscape 16:9-oriented YouTube upload style, not a /shorts/ URL) shared with this channel's other similarly-titled uploads -- an inference from title/URL structure, not a genuine cut/shot-length observation, and should be corrected if a live-playback review finds otherwise.",
+    "review_method": "text_provenance_only"
+  }
+}

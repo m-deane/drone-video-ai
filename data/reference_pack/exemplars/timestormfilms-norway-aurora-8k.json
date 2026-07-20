@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "source_url": "https://www.youtube.com/watch?v=XkvlY7qDXcU",
+  "platform": "youtube",
+  "license_category": "all-rights-reserved",
+  "title": "NOX NORSK | Incredible Aurora in Norway | 8K 60p HDR",
+  "creator": "Timestorm Films",
+  "duration": null,
+  "retrieval_date": "2026-07-20",
+  "scores": {
+    "sharpness": 0.76,
+    "exposure": 0.74,
+    "motion_smoothness": 0.77,
+    "composition": null,
+    "composite_score": 0.7567
+  },
+  "award_or_showcase_provenance": null,
+  "local_media_path": null,
+  "scores_provenance": "manually_estimated",
+  "notes": "BAYESIAN-PROCESS CANDIDATE -- second half of this run's Norway/Iceland aurora subgenre-deepening pass, sourced from the same WebSearch that surfaced ozzophotography-iceland-aurora-reykjanes.json, giving Norway (not just Iceland) a comparable aurora-subgenre exemplar in the same evidence pass. Verified via WebFetch of the YouTube oEmbed endpoint (https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=XkvlY7qDXcU&format=json), which returned title='NOX NORSK | Incredible Aurora in Norway | 8K 60p HDR', author_name='Timestorm Films', author_url='https://www.youtube.com/@TimestormFilms' -- confirms a real, currently-public video; the title's own '8K 60p HDR' claim is a materially higher stated production spec than this pack's typical '4K' entries. A WebSearch this session ('\"Timestorm Films\" youtube channel aurora timelapse drone subscribers') returned unusually strong creator-legitimacy evidence for this batch: inclusion in a curated '25 Time Lapse YouTubers You Must Follow' feature (feedspot.com), a dedicated channel-analytics page on vidIQ, a dedicated analytics report on Playboard, the creator's own professional business website (timestormfilms.net, self-described 'Professional Timelapse Photography'), a curated channel playlist specifically for '8K & 4K TIMELAPSE' content, and press coverage of a different Timestorm Films piece (a South Pole aurora australis/Milky Way timelapse covered independently by DIYPhotography and Time Lapse Network) -- confirming this is an established, professional, award-adjacent timelapse/night-sky cinematography brand, not a one-off upload, though this specific video's own technical details (camera/drone model, exact filming location within Norway) were not independently found the way ozzophotography-iceland-aurora-reykjanes.json's were, so this record is scored slightly below that one on a like-for-like corroboration-depth basis. The watch-page fetch (for CC-license/upload-date/duration) returned HTTP 429 (rate-limited), consistent with essentially every YouTube watch-page attempt this session, so license_category stays the conservative all-rights-reserved default and duration stays null. Note: 'Timestorm Films' work here is timelapse-and-drone cinematography, not necessarily a pure real-time drone flight -- the title does not explicitly disambiguate whether the aerial perspective is drone-mounted-timelapse vs. traditional drone videography, and this session's research did not resolve that ambiguity; recorded honestly here rather than assumed. POSTERIOR after this candidate: confidence that the pack's aurora-subgenre coverage now spans BOTH Iceland and Norway (this run's two aurora-relevant target locations) shifted upward; combined with ozzophotography-iceland-aurora-reykjanes.json, this closes the 'no aurora content over any of this pack's actual target destinations' gap identified as this phase's prior. STOPPING DECISION: this run's Norway/Iceland subgenre-deepening phase stops after these two candidates -- both target locations now have a genuine, distinctly-themed, non-daytime-cinematic exemplar, and further sourcing here (e.g. a third aurora candidate, or a different novel subgenre) was judged likely to hit diminishing returns without a specific new hypothesis to test, consistent with this task's stopping-rule switch variable. `composite_score` is NOT a call to the repo's real `compute_composite_score`/`default_weights()` (no shell access this session); computed via the documented equal-weighted-mean formula: (0.76+0.74+0.77)/3 = 0.7566666666666667, rounded to 0.7567. `composition` stays null.",
+  "editorial_style": {
+    "format": "long-form-cinematic",
+    "estimated_cut_count": null,
+    "avg_shot_length_seconds": null,
+    "transition_styles_observed": [],
+    "pacing_notes": "Not independently reviewed via playback this session. Given the creator's core specialty is timelapse photography (confirmed via multiple sources above), pacing plausibly involves deliberate long-exposure/timelapse sequencing rather than real-time smooth flight -- a genre inference from creator specialty, not an observed cut/shot-length pattern, and should be corrected first if a live-playback review becomes possible.",
+    "review_method": "text_provenance_only"
+  }
+}
