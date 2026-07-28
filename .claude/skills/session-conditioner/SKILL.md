@@ -86,14 +86,14 @@ If the grep returns nothing (CLAUDE.md has no `## Critical Patterns` section), *
 | auth-scoping | All queries filter by the authenticated user's identifier | Queries without auth filter — users read each other's data |
 | error-type | All errors use the project's standard error mechanism | Non-standard errors expose stack traces or break error handling |
 | input-validation | All inputs are validated with size/type bounds | No server-side validation — DoS or injection vectors |
-| autonomy-level | `supervised` (default) — confirm destructive/irreversible actions; `assisted` — confirm most actions; `autonomous` — confirm only push/delete/external-API | Wrong assumption → either over-interrupts (assisted when autonomous expected) or under-gates (autonomous when supervised needed) |
+| autonomy-level | `assisted` (default) — confirm Tier B before dispatch; `supervised` — confirm every action including Tier B; `autonomous` — confirm only push/delete/external-API | Wrong assumption → either over-interrupts or under-gates |
 
 Limit to 5 switch variables maximum.
 
 Set `autonomy-level` from session context:
 - If the user has stated "run autonomously" or "minimal interruptions": set to `autonomous`
-- If the user has stated "confirm everything" or "check with me": set to `assisted`
-- Default: `supervised`
+- If the user has stated "confirm everything" or "check with me": set to `supervised`
+- Default: `assisted` (matches root `CLAUDE.md` → Critical Patterns when that section exists)
 
 Include `autonomy-level: {value}` in the Session Conditions block emitted in Step 5.
 

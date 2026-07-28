@@ -1,0 +1,2169 @@
+{
+  "schema": {
+    "name": "reference_pack_index",
+    "version": 1,
+    "generated_utc_date": "2026-07-27",
+    "purpose": "Byte-level and stream-level index of every file in the reference corpus at /Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples, plus the out-of-corpus source master the corpus's own sidecar names. Companion to data/reference_pack/editorial_style.json: that file records HOW the material is cut and graded, this one records WHAT the files physically are and how they relate. Every field traces to a command run against the bytes; nothing is a default.",
+    "toolchain": {
+      "ffprobe": "8.1 at /opt/homebrew/bin/ffprobe at measurement time. NOTE 2026-07-27: a homebrew x265 4.1->4.2 upgrade later broke the link set (dyld abort); brew reinstall ffmpeg restored it as 8.1.2. All measurements in this pack were made under 8.1.",
+      "ffmpeg": "8.1 at /opt/homebrew/bin/ffmpeg at measurement time (version recorded 2026-07-27; scdet/cropdetect/signalstats behaviour is version-dependent). Same relink note as ffprobe: now 8.1.2.",
+      "hash": "shasum -a 256, and re-verified by python3 hashlib.sha256 in this session",
+      "python": "system python3, stdlib only (json, csv, hashlib, math, os, datetime)",
+      "unavailable": "cv2, numpy, scenedetect, opentimelineio - no optical-flow capability in this environment, so any claim requiring it is marked UNVERIFIABLE IN-SESSION rather than guessed"
+    },
+    "confidence_vocabulary": {
+      "measured": "produced by a command run against the file's bytes in this session",
+      "inferred": "deduced from measurements without direct observation of the causal step",
+      "unknown": "neither measured nor deducible from what is present",
+      "UNVERIFIABLE IN-SESSION": "requires a tool absent from this environment; recorded as an open claim, never as a fact"
+    },
+    "entry_contract": {
+      "path": "absolute path to the file as it exists on this machine",
+      "filename": "basename",
+      "size_bytes": "os.path.getsize, in bytes",
+      "sha256": "SHA-256 of the whole file, recomputed in this session (not carried forward)",
+      "mtime_utc": "filesystem modification time, UTC, ISO-8601. Chronology only - mtime is not provenance",
+      "kind": "video | sidecar_json",
+      "role": "see enumerations.role",
+      "provenance": "see enumerations.provenance",
+      "derived_from": "the parent this file was produced from, as established by measurement",
+      "provenance_note": "the evidence for role/derived_from, quoted from the analysis phase",
+      "provenance_measured_in_session": "false throughout: the correlation/PSNR work behind provenance was done in an earlier phase and was not re-run here. The ffprobe, sha256, scdet and cropdetect figures WERE re-run here",
+      "container": "format-level ffprobe facts; null for non-media",
+      "video": "video-stream ffprobe facts including coded geometry, rate, and colour tagging; null for non-media",
+      "audio": "audio presence and per-stream detail; detail is null when no audio stream exists",
+      "active_picture": "cropdetect result - the picture area inside any baked-in bars. null where cropdetect was not run in this session",
+      "scene_analysis": "scdet-derived hard-cut count and scene-score extremes; null for non-media",
+      "cross_reference": "manifest.json claim vs measurement for the split clips; null otherwise",
+      "probe_artefacts": "repo-relative paths to the raw ffprobe JSON and scdet CSV backing this entry",
+      "json": "SIDECAR-ONLY (kind=sidecar_json entries, i.e. manifest.json itself): the parsed content of the sidecar, embedded verbatim so the index is self-contained.",
+      "not_media_reason": "SIDECAR-ONLY (kind=sidecar_json entries): why this corpus file has no ffprobe fingerprint or scene-score fields - it is JSON, not media."
+    },
+    "video_field_notes": {
+      "coded_aspect_ratio": "width:height of the CODED frame, reduced. It is not the aspect of the visible picture where bars are baked in - see active_picture",
+      "constant_frame_rate": "true when r_frame_rate == avg_frame_rate",
+      "colour": "a null member means the tag is ABSENT from the stream, i.e. unspecified. It does not mean BT.709; assuming BT.709 for an absent tag is an inference, not a measurement",
+      "bit_rate_bps": "stream bit rate. The container-level rate differs slightly because it includes muxing overhead"
+    },
+    "scene_analysis_field_notes": {
+      "hard_cut_count": "frames whose scdet score >= hard_cut_threshold",
+      "hard_cut_threshold": "10.0 on scdet's 0-100 scale. Calibrated against a synthetic positive control (testsrc2->black->smptebars) whose genuine cuts scored 31.42 and 42.19",
+      "frames_at_or_above_5": "a deliberately lax second threshold, reported so the zero result cannot be read as threshold-shopping",
+      "scene_score_max_excluding_frame1_warmup": "scdet's first scored frame (t=0.033333 s) is a warm-up artefact because prev_mafd is still 0. In three of the split clips that artefact IS the global maximum, so the excluding-warm-up figure is the honest one",
+      "shot_count": "1 in every file. This is a positive finding, not a detection failure"
+    },
+    "cross_reference_field_notes": {
+      "agrees": "true only on exact frame agreement at 30 fps; a sub-frame delta is not rounded away",
+      "delta_frames_at_30fps": "measured_duration_s - claimed_duration_s, expressed in frames",
+      "sidecar_motion_type_status": "always UNVERIFIABLE IN-SESSION - optical flow is not available here"
+    },
+    "enumerations": {
+      "role": {
+        "master": "the most upstream file present; everything else in its family descends from it",
+        "derivative": "cut or transformed from a master that is present and identified",
+        "rendition": "one of several exports of a parent timeline that is NOT present",
+        "unknown": "not media, so the role vocabulary does not apply"
+      },
+      "provenance": {
+        "known": "a document in the corpus names the parent AND measurement confirms it",
+        "inferred": "no document names the parent; the relationship rests on measurement alone",
+        "unknown": "neither documented nor measurable"
+      }
+    },
+    "top_level_keys": {
+      "corpus": "what the indexed directory contains, and how it partitions",
+      "source_master": "the out-of-corpus file that manifest.json names as the source of the split family",
+      "files": "the 9 corpus entries, sidecar first then split family then vertical renditions",
+      "families": "the two provably independent groups the corpus splits into",
+      "cross_reference_summary": "roll-up of every sidecar claim checked against measurement",
+      "corpus_wide_invariants": "facts that hold for all 9 indexed media files without exception"
+    }
+  },
+  "corpus": {
+    "root": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples",
+    "access": "READ-ONLY. Nothing in this directory may be moved, renamed, modified, deleted or re-encoded.",
+    "file_count": 9,
+    "media_files": 8,
+    "sidecar_files": 1,
+    "families": 2,
+    "indexed_outside_corpus": 1
+  },
+  "source_master": {
+    "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/.advanced/DJI_0355_proxy.mp4",
+    "filename": "DJI_0355_proxy.mp4",
+    "size_bytes": 92905225,
+    "sha256": "8e0a610f6a00fd140af9a58327706c3738b25a51fbf18565d42270a1171c28cc",
+    "mtime_utc": "2026-03-15T17:00:05Z",
+    "kind": "video",
+    "role": "master",
+    "provenance": "known",
+    "derived_from": "DJI_20241029174803_0355_D.MP4 (camera original, located and pixel-matched 2026-07-27, this session)",
+    "provenance_note": "Effective master for split_001-004, confirmed by lagged-YAVG correlation and PSNR, not merely by the sidecar's declaration. NOT a camera original itself: encoder tag Lavc62.11.100 libx264 and muxer Lavf62.3.100 make it a re-encode, and its filename plus 11.7 Mbps 720p rate mark it a proxy. (RESOLVED 2026-07-27, this session: the camera original behind this proxy is no longer absent. It was located at DJI_20241029174803_0355_D.MP4, same .advanced/ directory as this proxy, 3840x2160 HEVC Main10 yuv420p10le, 59.94 fps, 63.580183 s, muxer tag 'DJI Mavic3Pro', and pixel-matched against this proxy at 7 of 9 sampled timestamps spanning the full duration (PSNR y 29-40 dB vs a calibrated same-pair floor of 15.5-19.6 dB). Verdict CONFIRMED, high confidence. It declares the identical bt2020nc/bt2020/arib-std-b67/tv HLG tag set as this proxy. Two details remain unresolved: a constant ~0.050-0.067 s timing offset between matched frames, and the exact frame-index decimation formula (raw is 59.94 fps, this proxy is exact 30/1 CFR). See REVIEW.md section 2.1a.)",
+    "provenance_measured_in_session": false,
+    "container": {
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "major_brand": "isom",
+      "compatible_brands": "isomiso2avc1mp41",
+      "muxer_encoder_tag": "Lavf62.3.100",
+      "nb_streams": 1,
+      "duration_s": 63.633333,
+      "bit_rate_bps": 11680070,
+      "probe_score": 100
+    },
+    "video": {
+      "codec_name": "h264",
+      "codec_tag_string": "avc1",
+      "profile": "High 10",
+      "level": 31,
+      "width": 1280,
+      "height": 720,
+      "coded_width": 1280,
+      "coded_height": 720,
+      "coded_aspect_ratio": "16:9",
+      "coded_aspect_decimal": 1.7778,
+      "sample_aspect_ratio": null,
+      "display_aspect_ratio": null,
+      "r_frame_rate": "30/1",
+      "avg_frame_rate": "30/1",
+      "constant_frame_rate": true,
+      "duration_s": 63.633333,
+      "duration_ts": 977408,
+      "time_base": "1/15360",
+      "nb_frames": 1909,
+      "pix_fmt": "yuv420p10le",
+      "bits_per_raw_sample": "10",
+      "has_b_frames": 0,
+      "field_order": "progressive",
+      "chroma_location": "left",
+      "colour": {
+        "color_space": "bt2020nc",
+        "color_primaries": "bt2020",
+        "color_transfer": "arib-std-b67",
+        "color_range": "tv"
+      },
+      "bit_rate_bps": 11678856,
+      "encoder_tag": "Lavc62.11.100 libx264"
+    },
+    "audio": {
+      "present": false,
+      "stream_count": 0,
+      "detail": null,
+      "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+    },
+    "active_picture": null,
+    "scene_analysis": {
+      "hard_cut_count": 0,
+      "hard_cut_threshold": 10.0,
+      "frames_at_or_above_5": 0,
+      "scene_score_max": 1.706,
+      "scene_score_max_at_s": 63.466667,
+      "scene_score_max_excluding_frame1_warmup": 1.706,
+      "scene_score_max_excluding_frame1_warmup_at_s": 63.466667,
+      "frames_scored": 1909,
+      "shot_count": 1,
+      "source_csv": "data/reference_pack/probe/DJI_0355_proxy.scd.csv",
+      "measured_in_session": true
+    },
+    "cross_reference": null,
+    "probe_artefacts": {
+      "ffprobe_json": "data/reference_pack/probe/DJI_0355_proxy.json",
+      "scdet_csv": "data/reference_pack/probe/DJI_0355_proxy.scd.csv"
+    },
+    "outside_corpus": true,
+    "corpus_membership_note": "NOT a member of /Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples. It is indexed here because manifest.json names it as the source of split_001-004 and measurement confirms that. It was located by content search after the sidecar's recorded path failed to resolve. Read-only: never modify it.",
+    "declared_path_in_sidecar": "/Users/matthewdeane/Documents/Data Science/python/_projects/_p-ai-drone-video/.drone_clips/.advanced/DJI_0355_proxy.mp4",
+    "declared_path_resolves": false,
+    "supplies": [
+      "split_001_s70.mp4",
+      "split_002_s69.mp4",
+      "split_003_s66.mp4",
+      "split_004_s65.mp4"
+    ]
+  },
+  "files": [
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/manifest.json",
+      "filename": "manifest.json",
+      "size_bytes": 2510,
+      "sha256": "3257dea6dd838b1ce258a2f7e4b89d6f165eff4de010ab205757e25dd5e591fe",
+      "mtime_utc": "2026-03-16T19:23:01Z",
+      "kind": "sidecar_json",
+      "role": "unknown",
+      "provenance": "known",
+      "derived_from": "sidecar written by the splitting tool alongside split_001-004",
+      "provenance_note": "Not media - a provenance sidecar, and the 9th entry in the corpus directory. It documents ONLY the split family and says nothing about the four vertical files, which is why their provenance is inferred. Its recorded source path is stale.",
+      "provenance_measured_in_session": false,
+      "container": null,
+      "video": null,
+      "audio": null,
+      "active_picture": null,
+      "scene_analysis": null,
+      "cross_reference": null,
+      "probe_artefacts": null,
+      "not_media_reason": "Not a media file, so no ffprobe fingerprint, no scene analysis and no audio record exist for it. All media-shaped fields are null by construction, never by omission.",
+      "json": {
+        "parses": true,
+        "validator": "python3 -m json.tool",
+        "top_level_keys": [
+          "clips",
+          "source_file",
+          "split_params",
+          "summary",
+          "version"
+        ],
+        "documents_files": [
+          "split_001_s70.mp4",
+          "split_002_s69.mp4",
+          "split_003_s66.mp4",
+          "split_004_s65.mp4"
+        ],
+        "documents_nothing_about": [
+          "instagram_reel_test.mp4",
+          "instagram_reel_v34_all_kb_full.mp4",
+          "viral_test_v2.mp4",
+          "viral_test_v2_4k.mp4"
+        ],
+        "declared_source_path": "/Users/matthewdeane/Documents/Data Science/python/_projects/_p-ai-drone-video/.drone_clips/.advanced/DJI_0355_proxy.mp4",
+        "declared_source_path_resolves": false,
+        "declared_source_path_note": "Stale: it names a /Users/matthewdeane home directory that does not exist on this machine. The file itself was located at the archive path recorded under source_master.path and identified by content, not by path.",
+        "internal_contradiction": "split_params.filtered is false while summary.scenes_filtered is 3 - the sidecar contradicts itself about whether scene filtering ran."
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/split_001_s70.mp4",
+      "filename": "split_001_s70.mp4",
+      "size_bytes": 28153847,
+      "sha256": "7f8928ef00fd6924682f61418afd34603d8d4c0373966734ac05f111878851b4",
+      "mtime_utc": "2026-03-16T19:21:19Z",
+      "kind": "video",
+      "role": "derivative",
+      "provenance": "known",
+      "derived_from": "DJI_0355_proxy.mp4, 40.000-55.000 s (measured)",
+      "provenance_note": "Best-match lag against the proxy centre-crop is exactly 1200 frames = 40.000 s (r=+0.95975), matching the sidecar. Correlated against the proxy's FULL frame instead, r collapses to +0.30494 at that lag, which is what proves the 2.35 framing was made by vertical centre-crop rather than anamorphic squeeze.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 15.0,
+        "bit_rate_bps": 15015385,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 31,
+        "width": 1280,
+        "height": 720,
+        "coded_width": 1280,
+        "coded_height": 720,
+        "coded_aspect_ratio": "16:9",
+        "coded_aspect_decimal": 1.7778,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 15.0,
+        "duration_ts": 230400,
+        "time_base": "1/15360",
+        "nb_frames": 450,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 0,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": "bt709",
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": "tv"
+        },
+        "bit_rate_bps": 15013683,
+        "encoder_tag": "Lavc61.19.100 h264_videotoolbox"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": {
+        "crop": "crop=1280:544:0:88",
+        "width": 1280,
+        "height": 544,
+        "x": 0,
+        "y": 88,
+        "aspect_ratio": "40:17",
+        "aspect_decimal": 2.3529,
+        "letterbox_bar_px_top": 88,
+        "letterbox_bar_px_bottom": 88,
+        "agreeing_reports": 448,
+        "total_frames": 450,
+        "command": "ffmpeg -vf cropdetect=limit=24:round=2:reset=0 -f null -",
+        "measured_in_session": true,
+        "note": "2.35 letterbox is baked in as black bars inside a genuinely 16:9 raster; there are no SAR/DAR tags. cropdetect thresholds at luma 24, so this proves the bars sit below that level, not that they are mathematically pure black."
+      },
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 2.668,
+        "scene_score_max_at_s": 0.033333,
+        "scene_score_max_excluding_frame1_warmup": 0.537,
+        "scene_score_max_excluding_frame1_warmup_at_s": 6.8,
+        "frames_scored": 450,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/split_001_s70.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": {
+        "sidecar": "manifest.json",
+        "sidecar_source_file": "DJI_0355_proxy.mp4",
+        "claimed_start_time_s": 40.0,
+        "claimed_end_time_s": 55.0,
+        "claimed_duration_s": 15.0,
+        "measured_duration_s": 15.0,
+        "measured_nb_frames": 450,
+        "delta_s": 0.0,
+        "delta_frames_at_30fps": 0,
+        "agrees": true,
+        "tolerance": "exact frame agreement at 30 fps; delta_frames_at_30fps must be 0",
+        "claimed_end_minus_start_s": 15.0,
+        "claimed_duration_self_consistent": true,
+        "sidecar_scene_score": 70.0,
+        "sidecar_motion_energy": 100.0,
+        "sidecar_motion_type": "REVEAL",
+        "sidecar_motion_type_status": "UNVERIFIABLE IN-SESSION - REVEAL/ORBIT_CW/STATIC classification needs optical flow, which requires cv2; cv2 is not installed and no dependency may be added. Recorded as a claim, neither confirmed nor refuted.",
+        "sidecar_post_processing": {
+          "color": "drone_aerial",
+          "stabilized": false,
+          "letterbox": "2.35",
+          "auto_speed": true
+        },
+        "post_processing_status": {
+          "letterbox": "CONFIRMED - cropdetect returns crop=1280:544:0:88 on this clip, i.e. 2.3529:1 active picture inside a 16:9 raster.",
+          "color": "PARTIAL - a grade is present (blacks lifted, active-area YMIN 31-41) but 'drone_aerial' at intensity 0.65 names a preset that cannot be recovered from pixels. The declared parameters are unverifiable in-session.",
+          "stabilized": "Declared false; no stabilisation signature was sought, since absence of a declared no-op needs no test.",
+          "auto_speed": "MEASURABLE NO-OP - declared true, yet duration equals frames/30 exactly and mpdecimate drops 0 frames, so no net retime was applied."
+        }
+      },
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/split_001_s70.json",
+        "scdet_csv": "data/reference_pack/probe/split_001_s70.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/split_002_s69.mp4",
+      "filename": "split_002_s69.mp4",
+      "size_bytes": 28140059,
+      "sha256": "aebd54f0b371c87d4f16d11cfb8929898c0e9b6b61812a837272fd76fe2bedfa",
+      "mtime_utc": "2026-03-16T19:21:58Z",
+      "kind": "video",
+      "role": "derivative",
+      "provenance": "known",
+      "derived_from": "DJI_0355_proxy.mp4, 25.000-40.000 s (measured)",
+      "provenance_note": "Best-match lag is exactly 750 frames = 25.000 s, r=+0.99948 - the strongest source match of the four. Declared offset confirmed to the frame.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 15.0,
+        "bit_rate_bps": 15008031,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 31,
+        "width": 1280,
+        "height": 720,
+        "coded_width": 1280,
+        "coded_height": 720,
+        "coded_aspect_ratio": "16:9",
+        "coded_aspect_decimal": 1.7778,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 15.0,
+        "duration_ts": 230400,
+        "time_base": "1/15360",
+        "nb_frames": 450,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 0,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": "bt709",
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": "tv"
+        },
+        "bit_rate_bps": 15006342,
+        "encoder_tag": "Lavc61.19.100 h264_videotoolbox"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": {
+        "crop": "crop=1280:544:0:88",
+        "width": 1280,
+        "height": 544,
+        "x": 0,
+        "y": 88,
+        "aspect_ratio": "40:17",
+        "aspect_decimal": 2.3529,
+        "letterbox_bar_px_top": 88,
+        "letterbox_bar_px_bottom": 88,
+        "agreeing_reports": 448,
+        "total_frames": 450,
+        "command": "ffmpeg -vf cropdetect=limit=24:round=2:reset=0 -f null -",
+        "measured_in_session": true,
+        "note": "2.35 letterbox is baked in as black bars inside a genuinely 16:9 raster; there are no SAR/DAR tags. cropdetect thresholds at luma 24, so this proves the bars sit below that level, not that they are mathematically pure black."
+      },
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 2.435,
+        "scene_score_max_at_s": 0.033333,
+        "scene_score_max_excluding_frame1_warmup": 0.475,
+        "scene_score_max_excluding_frame1_warmup_at_s": 0.433333,
+        "frames_scored": 450,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/split_002_s69.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": {
+        "sidecar": "manifest.json",
+        "sidecar_source_file": "DJI_0355_proxy.mp4",
+        "claimed_start_time_s": 25.0,
+        "claimed_end_time_s": 40.0,
+        "claimed_duration_s": 15.0,
+        "measured_duration_s": 15.0,
+        "measured_nb_frames": 450,
+        "delta_s": 0.0,
+        "delta_frames_at_30fps": 0,
+        "agrees": true,
+        "tolerance": "exact frame agreement at 30 fps; delta_frames_at_30fps must be 0",
+        "claimed_end_minus_start_s": 15.0,
+        "claimed_duration_self_consistent": true,
+        "sidecar_scene_score": 69.8,
+        "sidecar_motion_energy": 96.1,
+        "sidecar_motion_type": "ORBIT_CW",
+        "sidecar_motion_type_status": "UNVERIFIABLE IN-SESSION - REVEAL/ORBIT_CW/STATIC classification needs optical flow, which requires cv2; cv2 is not installed and no dependency may be added. Recorded as a claim, neither confirmed nor refuted.",
+        "sidecar_post_processing": {
+          "color": "drone_aerial",
+          "stabilized": false,
+          "letterbox": "2.35",
+          "auto_speed": true
+        },
+        "post_processing_status": {
+          "letterbox": "CONFIRMED - cropdetect returns crop=1280:544:0:88 on this clip, i.e. 2.3529:1 active picture inside a 16:9 raster.",
+          "color": "PARTIAL - a grade is present (blacks lifted, active-area YMIN 31-41) but 'drone_aerial' at intensity 0.65 names a preset that cannot be recovered from pixels. The declared parameters are unverifiable in-session.",
+          "stabilized": "Declared false; no stabilisation signature was sought, since absence of a declared no-op needs no test.",
+          "auto_speed": "MEASURABLE NO-OP - declared true, yet duration equals frames/30 exactly and mpdecimate drops 0 frames, so no net retime was applied."
+        }
+      },
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/split_002_s69.json",
+        "scdet_csv": "data/reference_pack/probe/split_002_s69.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/split_003_s66.mp4",
+      "filename": "split_003_s66.mp4",
+      "size_bytes": 15590791,
+      "sha256": "33dd47b0a2980a7033c639a95087059104bfe445258bd56793e3785fe26e396c",
+      "mtime_utc": "2026-03-16T19:22:20Z",
+      "kind": "video",
+      "role": "derivative",
+      "provenance": "known",
+      "derived_from": "DJI_0355_proxy.mp4, 16.666667-24.966667 s = proxy frames 500-748 inclusive (measured; sidecar declares 16.67)",
+      "provenance_note": "CORRECTED 2026-07-27 (claim C24 killed 2/3 on adversarial verification). Extraction is FRAME-EXACT at proxy frame 500 = 16.666667 s = floor(declared start_time x 30); it did NOT begin one frame late. Pixel PSNR resolves the lag unambiguously: this session measured mean psnr_avg over 60 frames of 18.4002 dB at -ss 16.666667 versus 17.4937 dB at 16.633333 (frame 499) and 17.4959 dB at 16.700000 (frame 501) - a single sharp peak on frame 500. Two independent skeptics reproduced the same peak (28.96 dB @500 vs 22.15/22.16 dB at 501/499; and 27.21 dB vs 22.68/22.69 dB). The superseded '501' figure came from a RAW mean-luma correlation whose top lags span only r=0.99423-0.99706 - a spread too narrow to resolve one frame, and an artefact of the metric. The clip's 249-frame count (vs a 250-frame declared span) is a shortfall at the END of the range, not a late start.",
+      "provenance_measured_in_session": true,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 8.3,
+        "bit_rate_bps": 15027268,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 31,
+        "width": 1280,
+        "height": 720,
+        "coded_width": 1280,
+        "coded_height": 720,
+        "coded_aspect_ratio": "16:9",
+        "coded_aspect_decimal": 1.7778,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 8.3,
+        "duration_ts": 127488,
+        "time_base": "1/15360",
+        "nb_frames": 249,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 0,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": "bt709",
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": "tv"
+        },
+        "bit_rate_bps": 15025257,
+        "encoder_tag": "Lavc61.19.100 h264_videotoolbox"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": {
+        "crop": "crop=1280:544:0:88",
+        "width": 1280,
+        "height": 544,
+        "x": 0,
+        "y": 88,
+        "aspect_ratio": "40:17",
+        "aspect_decimal": 2.3529,
+        "letterbox_bar_px_top": 88,
+        "letterbox_bar_px_bottom": 88,
+        "agreeing_reports": 247,
+        "total_frames": 249,
+        "command": "ffmpeg -vf cropdetect=limit=24:round=2:reset=0 -f null -",
+        "measured_in_session": true,
+        "note": "2.35 letterbox is baked in as black bars inside a genuinely 16:9 raster; there are no SAR/DAR tags. cropdetect thresholds at luma 24, so this proves the bars sit below that level, not that they are mathematically pure black."
+      },
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 2.104,
+        "scene_score_max_at_s": 0.033333,
+        "scene_score_max_excluding_frame1_warmup": 0.174,
+        "scene_score_max_excluding_frame1_warmup_at_s": 0.066667,
+        "frames_scored": 249,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/split_003_s66.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": {
+        "sidecar": "manifest.json",
+        "sidecar_source_file": "DJI_0355_proxy.mp4",
+        "claimed_start_time_s": 16.67,
+        "claimed_end_time_s": 25.0,
+        "claimed_duration_s": 8.33,
+        "measured_duration_s": 8.3,
+        "measured_nb_frames": 249,
+        "delta_s": -0.03,
+        "delta_frames_at_30fps": -1,
+        "agrees": false,
+        "tolerance": "exact frame agreement at 30 fps; delta_frames_at_30fps must be 0",
+        "claimed_end_minus_start_s": 8.33,
+        "claimed_duration_self_consistent": true,
+        "sidecar_scene_score": 66.8,
+        "sidecar_motion_energy": 79.9,
+        "sidecar_motion_type": "REVEAL",
+        "sidecar_motion_type_status": "UNVERIFIABLE IN-SESSION - REVEAL/ORBIT_CW/STATIC classification needs optical flow, which requires cv2; cv2 is not installed and no dependency may be added. Recorded as a claim, neither confirmed nor refuted.",
+        "sidecar_post_processing": {
+          "color": "drone_aerial",
+          "stabilized": false,
+          "letterbox": "2.35",
+          "auto_speed": true
+        },
+        "post_processing_status": {
+          "letterbox": "CONFIRMED - cropdetect returns crop=1280:544:0:88 on this clip, i.e. 2.3529:1 active picture inside a 16:9 raster.",
+          "color": "PARTIAL - a grade is present (blacks lifted, active-area YMIN 31-41) but 'drone_aerial' at intensity 0.65 names a preset that cannot be recovered from pixels. The declared parameters are unverifiable in-session.",
+          "stabilized": "Declared false; no stabilisation signature was sought, since absence of a declared no-op needs no test.",
+          "auto_speed": "MEASURABLE NO-OP - declared true, yet duration equals frames/30 exactly and mpdecimate drops 0 frames, so no net retime was applied."
+        },
+        "disagreement_explanation": "CORRECTED 2026-07-27 (claim C24 killed 2/3). The sidecar rounds start_time to 2 dp (16.67). Extraction began FRAME-EXACTLY at the true 16.666667 s = proxy frame 500 - not one frame late - as PSNR resolves (18.4002 dB at 16.666667 vs 17.4937/17.4959 dB at the two neighbouring frames, this session). The clip holds 249 frames rather than 250 because the range ends one frame short (frames 500-748), which is what the sidecar's own 2 dp rounding produces: 25.0 - 16.67 = 8.33 s; 8.33 x 30 = 249.9; floor = 249. duration_ts 127488 / time_base 15360 = 8.3 exactly, so 8.300 s is the true duration and not a rounding of 8.33. Note the sidecar's own summary.total_duration 53.3 only balances if 8.3 is used, so the sidecar's per-clip 8.33 disagrees with its own summary."
+      },
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/split_003_s66.json",
+        "scdet_csv": "data/reference_pack/probe/split_003_s66.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/split_004_s65.mp4",
+      "filename": "split_004_s65.mp4",
+      "size_bytes": 28143093,
+      "sha256": "e5ceb9e4757c9c39adec087fb49868dee360ef71c31404f41c8ef3afcd2037a5",
+      "mtime_utc": "2026-03-16T19:23:01Z",
+      "kind": "video",
+      "role": "derivative",
+      "provenance": "known",
+      "derived_from": "DJI_0355_proxy.mp4, 0.000-15.000 s (measured)",
+      "provenance_note": "Best-match lag is exactly 0 frames = 0.000 s, r=+0.99830; PSNR y=28.97 dB against the proxy centre-cropped-and-padded over the first 10 s, versus a 12.48 dB same-geometry unrelated-pair floor. The render also performed a 10-bit HLG/BT.2020 -> 8-bit SDR BT.709 conversion that the sidecar never mentions.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 15.0,
+        "bit_rate_bps": 15009649,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 31,
+        "width": 1280,
+        "height": 720,
+        "coded_width": 1280,
+        "coded_height": 720,
+        "coded_aspect_ratio": "16:9",
+        "coded_aspect_decimal": 1.7778,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 15.0,
+        "duration_ts": 230400,
+        "time_base": "1/15360",
+        "nb_frames": 450,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 0,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": "bt709",
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": "tv"
+        },
+        "bit_rate_bps": 15007948,
+        "encoder_tag": "Lavc61.19.100 h264_videotoolbox"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": {
+        "crop": "crop=1280:544:0:88",
+        "width": 1280,
+        "height": 544,
+        "x": 0,
+        "y": 88,
+        "aspect_ratio": "40:17",
+        "aspect_decimal": 2.3529,
+        "letterbox_bar_px_top": 88,
+        "letterbox_bar_px_bottom": 88,
+        "agreeing_reports": 448,
+        "total_frames": 450,
+        "command": "ffmpeg -vf cropdetect=limit=24:round=2:reset=0 -f null -",
+        "measured_in_session": true,
+        "note": "2.35 letterbox is baked in as black bars inside a genuinely 16:9 raster; there are no SAR/DAR tags. cropdetect thresholds at luma 24, so this proves the bars sit below that level, not that they are mathematically pure black."
+      },
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 0.516,
+        "scene_score_max_at_s": 0.033333,
+        "scene_score_max_excluding_frame1_warmup": 0.415,
+        "scene_score_max_excluding_frame1_warmup_at_s": 0.133333,
+        "frames_scored": 450,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/split_004_s65.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": {
+        "sidecar": "manifest.json",
+        "sidecar_source_file": "DJI_0355_proxy.mp4",
+        "claimed_start_time_s": 0.0,
+        "claimed_end_time_s": 15.0,
+        "claimed_duration_s": 15.0,
+        "measured_duration_s": 15.0,
+        "measured_nb_frames": 450,
+        "delta_s": 0.0,
+        "delta_frames_at_30fps": 0,
+        "agrees": true,
+        "tolerance": "exact frame agreement at 30 fps; delta_frames_at_30fps must be 0",
+        "claimed_end_minus_start_s": 15.0,
+        "claimed_duration_self_consistent": true,
+        "sidecar_scene_score": 65.6,
+        "sidecar_motion_energy": 77.7,
+        "sidecar_motion_type": "STATIC",
+        "sidecar_motion_type_status": "UNVERIFIABLE IN-SESSION - REVEAL/ORBIT_CW/STATIC classification needs optical flow, which requires cv2; cv2 is not installed and no dependency may be added. Recorded as a claim, neither confirmed nor refuted.",
+        "sidecar_post_processing": {
+          "color": "drone_aerial",
+          "stabilized": false,
+          "letterbox": "2.35",
+          "auto_speed": true
+        },
+        "post_processing_status": {
+          "letterbox": "CONFIRMED - cropdetect returns crop=1280:544:0:88 on this clip, i.e. 2.3529:1 active picture inside a 16:9 raster.",
+          "color": "PARTIAL - a grade is present (blacks lifted, active-area YMIN 31-41) but 'drone_aerial' at intensity 0.65 names a preset that cannot be recovered from pixels. The declared parameters are unverifiable in-session.",
+          "stabilized": "Declared false; no stabilisation signature was sought, since absence of a declared no-op needs no test.",
+          "auto_speed": "MEASURABLE NO-OP - declared true, yet duration equals frames/30 exactly and mpdecimate drops 0 frames, so no net retime was applied."
+        }
+      },
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/split_004_s65.json",
+        "scdet_csv": "data/reference_pack/probe/split_004_s65.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/viral_test_v2.mp4",
+      "filename": "viral_test_v2.mp4",
+      "size_bytes": 24470570,
+      "sha256": "8969c6665559b2145938f990b0aec6ad361cf859cbddc3791eb3563117b7d84d",
+      "mtime_utc": "2026-02-08T19:58:00Z",
+      "kind": "video",
+      "role": "rendition",
+      "provenance": "inferred",
+      "derived_from": "an absent parent timeline shared with viral_test_v2_4k.mp4; NOT DJI_0355_proxy.mp4 (ruled out by measurement)",
+      "provenance_note": "Named nowhere in manifest.json, hence inferred. Frame-locked to viral_test_v2_4k.mp4: identical 437 frames / 14.566667 s, exactly 2x linear resolution, YAVG r=+0.99987 at lag 0, PSNR y=34.64 dB. Against DJI_0355_proxy its best lagged r is only +0.8787 while its own time-reversed null reaches +0.7798, so that is null-level, not a match.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 14.566667,
+        "bit_rate_bps": 13439214,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 41,
+        "width": 1080,
+        "height": 1920,
+        "coded_width": 1080,
+        "coded_height": 1920,
+        "coded_aspect_ratio": "9:16",
+        "coded_aspect_decimal": 0.5625,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 14.566667,
+        "duration_ts": 223744,
+        "time_base": "1/15360",
+        "nb_frames": 437,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 2,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": null,
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": null
+        },
+        "bit_rate_bps": 13435909,
+        "encoder_tag": "Lavc61.19.100 libx264"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": null,
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 1.799,
+        "scene_score_max_at_s": 14.1,
+        "scene_score_max_excluding_frame1_warmup": 1.799,
+        "scene_score_max_excluding_frame1_warmup_at_s": 14.1,
+        "frames_scored": 437,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/viral_test_v2.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": null,
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/viral_test_v2.json",
+        "scdet_csv": "data/reference_pack/probe/viral_test_v2.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/viral_test_v2_4k.mp4",
+      "filename": "viral_test_v2_4k.mp4",
+      "size_bytes": 138192119,
+      "sha256": "4c08ca33533bc11b73a191506f64f831f7c2f01b1ae55ce5718424afecb410f9",
+      "mtime_utc": "2026-02-08T22:00:27Z",
+      "kind": "video",
+      "role": "rendition",
+      "provenance": "inferred",
+      "derived_from": "an absent parent timeline shared with viral_test_v2.mp4; frame-locked sibling, not a resample of it",
+      "provenance_note": "PARTIALLY CORRECTED 2026-07-27 (claim C57 killed 3/3). PSNR between the pair is near-symmetric, but the superseded 31.80 dB figure is not reproducible in either direction. With bicubic BOTH ways: downscaling viral_test_v2_4k to 1080x1920 against viral_test_v2 gives psnr_y 34.640697 dB (two skeptics reproduced 34.64 to 4 s.f. independently); upscaling viral_test_v2 to 2160x3840 gives psnr_y 34.404432 dB (also reproduced twice). The gap is 0.24 dB, not 2.84 dB - so the conclusion that NEITHER file is identifiable as the render source from pixels is STRONGER than originally stated, not weaker. The scaler is load-bearing: a five-scaler sweep spans 33.467-34.714 dB, a 1.25 dB spread five times wider than the corrected 0.24 dB asymmetry, so no PSNR figure here is meaningful without naming it. Detail: native 4K carries more high-frequency energy than any upscale of the 1080 member can, so the pair are frame-locked siblings rather than a resample - direction confirmed, magnitude UNSETTLED. This session measured mean Laplacian (3x3, gray) energy over 61 frames at 3.2991 (native) vs 2.0993 (1080 bicubic-upscaled) = 1.57x; an earlier phase reported 3.2365 vs 1.8853 = 1.72x over 180 frames. Neither figure reproduces the other and the ratio was never entered into the claim set, so it went unverified - treat 1.57-1.72x as a range, not a constant. '4k' names the 3840 LONG (vertical) edge; the frame is 2160 wide.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 14.566667,
+        "bit_rate_bps": 75894983,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 51,
+        "width": 2160,
+        "height": 3840,
+        "coded_width": 2160,
+        "coded_height": 3840,
+        "coded_aspect_ratio": "9:16",
+        "coded_aspect_decimal": 0.5625,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 14.566667,
+        "duration_ts": 223744,
+        "time_base": "1/15360",
+        "nb_frames": 437,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 2,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": null,
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": null
+        },
+        "bit_rate_bps": 75890986,
+        "encoder_tag": "Lavc61.19.100 libx264"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": null,
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 1.776,
+        "scene_score_max_at_s": 1.2,
+        "scene_score_max_excluding_frame1_warmup": 1.776,
+        "scene_score_max_excluding_frame1_warmup_at_s": 1.2,
+        "frames_scored": 437,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/viral_test_v2_4k.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": null,
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/viral_test_v2_4k.json",
+        "scdet_csv": "data/reference_pack/probe/viral_test_v2_4k.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/instagram_reel_test.mp4",
+      "filename": "instagram_reel_test.mp4",
+      "size_bytes": 47761652,
+      "sha256": "e1fb91b6b99eaaff69711f6617b38d4c7c07cbf4fc384c25a4d83ad7f02a4eb8",
+      "mtime_utc": "2026-02-08T17:42:57Z",
+      "kind": "video",
+      "role": "rendition",
+      "provenance": "inferred",
+      "derived_from": "the same cut as instagram_reel_v34_all_kb_full.mp4 (frame-locked); parent timeline absent; NOT DJI_0355_proxy.mp4",
+      "provenance_note": "Per-frame PSNR against v34 downscaled is frame-locked across all 813 frames (min 19.08, p50 23.53, max 44.11) and never approaches the unrelated-pair floor, which proves the two share one edit frame-for-frame. It is NOT uniform, however (corrected 2026-07-27): 40-frame windowed means rise from 19.42 to 34.08 dB with step changes near frames 320, 520, 560, 600 and 720 - the pixel divergence between the pair is concentrated in the first ~40% of the timeline, consistent with a differing opening treatment or overlay rather than a global grade. See editorial_style.json open_questions OQ15. Best lagged r against DJI_0355_proxy is +0.5228, BELOW its own time-reversed null of +0.7748.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 27.1,
+        "bit_rate_bps": 14099380,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 41,
+        "width": 1080,
+        "height": 1920,
+        "coded_width": 1080,
+        "coded_height": 1920,
+        "coded_aspect_ratio": "9:16",
+        "coded_aspect_decimal": 0.5625,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 27.1,
+        "duration_ts": 416256,
+        "time_base": "1/15360",
+        "nb_frames": 813,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 2,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": null,
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": null
+        },
+        "bit_rate_bps": 14096352,
+        "encoder_tag": "Lavc61.19.100 libx264"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": null,
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 1.547,
+        "scene_score_max_at_s": 17.8,
+        "scene_score_max_excluding_frame1_warmup": 1.547,
+        "scene_score_max_excluding_frame1_warmup_at_s": 17.8,
+        "frames_scored": 813,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/instagram_reel_test.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": null,
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/instagram_reel_test.json",
+        "scdet_csv": "data/reference_pack/probe/instagram_reel_test.scd.csv"
+      }
+    },
+    {
+      "path": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/instagram_reel_v34_all_kb_full.mp4",
+      "filename": "instagram_reel_v34_all_kb_full.mp4",
+      "size_bytes": 249919142,
+      "sha256": "6034247da99718b96bd6f9a3b4fea96e43b45fe59c9738767aafbdb066ce8676",
+      "mtime_utc": "2026-02-04T14:32:41Z",
+      "kind": "video",
+      "role": "rendition",
+      "provenance": "inferred",
+      "derived_from": "the same cut as instagram_reel_test.mp4 (frame-locked), at 2x resolution and a different opening treatment or overlay (NOT confirmed as a uniform grade - corrected 2026-07-27, see provenance_note)",
+      "provenance_note": "CORRECTED 2026-07-27: the version axis is NOT a uniform grade, despite the whole-file YAVG means (121.83 vs 117.34) suggesting one. Per-frame PSNR against instagram_reel_test is frame-locked (min 19.08, zero below 18 dB) but NOT uniform: 40-frame windowed means rise from 19.42 to 34.08 dB with step changes near frames 320, 520, 560, 600 and 720 - divergence concentrated in roughly the first 40% of the timeline, consistent with a differing opening treatment or overlay rather than a grade applied evenly throughout. Frame-0 YAVG 137.6 vs 128.9, YAVG max 146.98 vs 132.00 remain accurate as single-frame data points, just not evidence of a global grade. mtime makes this the EARLIER render (2026-02-04) and instagram_reel_test the later (2026-02-08), so the naming and the chronology point in opposite directions. See editorial_style.json open_questions OQ15.",
+      "provenance_measured_in_session": false,
+      "container": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "major_brand": "isom",
+        "compatible_brands": "isomiso2avc1mp41",
+        "muxer_encoder_tag": "Lavf61.7.100",
+        "nb_streams": 1,
+        "duration_s": 27.1,
+        "bit_rate_bps": 73776868,
+        "probe_score": 100
+      },
+      "video": {
+        "codec_name": "h264",
+        "codec_tag_string": "avc1",
+        "profile": "High",
+        "level": 51,
+        "width": 2160,
+        "height": 3840,
+        "coded_width": 2160,
+        "coded_height": 3840,
+        "coded_aspect_ratio": "9:16",
+        "coded_aspect_decimal": 0.5625,
+        "sample_aspect_ratio": null,
+        "display_aspect_ratio": null,
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "constant_frame_rate": true,
+        "duration_s": 27.1,
+        "duration_ts": 416256,
+        "time_base": "1/15360",
+        "nb_frames": 813,
+        "pix_fmt": "yuv420p",
+        "bits_per_raw_sample": "8",
+        "has_b_frames": 2,
+        "field_order": "progressive",
+        "chroma_location": "left",
+        "colour": {
+          "color_space": null,
+          "color_primaries": null,
+          "color_transfer": null,
+          "color_range": null
+        },
+        "bit_rate_bps": 73773819,
+        "encoder_tag": "Lavc61.19.100 libx264"
+      },
+      "audio": {
+        "present": false,
+        "stream_count": 0,
+        "detail": null,
+        "note": "nb_streams == 1 and the only stream is video: the file carries no audio track at all."
+      },
+      "active_picture": null,
+      "scene_analysis": {
+        "hard_cut_count": 0,
+        "hard_cut_threshold": 10.0,
+        "frames_at_or_above_5": 0,
+        "scene_score_max": 3.537,
+        "scene_score_max_at_s": 1.033333,
+        "scene_score_max_excluding_frame1_warmup": 3.537,
+        "scene_score_max_excluding_frame1_warmup_at_s": 1.033333,
+        "frames_scored": 813,
+        "shot_count": 1,
+        "source_csv": "data/reference_pack/probe/instagram_reel_v34_all_kb_full.scd.csv",
+        "measured_in_session": true
+      },
+      "cross_reference": null,
+      "probe_artefacts": {
+        "ffprobe_json": "data/reference_pack/probe/instagram_reel_v34_all_kb_full.json",
+        "scdet_csv": "data/reference_pack/probe/instagram_reel_v34_all_kb_full.scd.csv"
+      }
+    }
+  ],
+  "families": [
+    {
+      "name": "split_family",
+      "members": [
+        "split_001_s70.mp4",
+        "split_002_s69.mp4",
+        "split_003_s66.mp4",
+        "split_004_s65.mp4"
+      ],
+      "master": "DJI_0355_proxy.mp4 (outside the corpus)",
+      "documented_by": "manifest.json",
+      "shared_fingerprint": "1280x720 coded, 30/1 CFR, yuv420p 8-bit, color_space bt709 + color_range tv with primaries and transfer ABSENT, h264 High level 31, has_b_frames 0, encoder h264_videotoolbox, ~15.0 Mbps, 2.35 letterbox baked in as crop=1280:544:0:88",
+      "provenance": "known"
+    },
+    {
+      "name": "vertical_family",
+      "members": [
+        "instagram_reel_test.mp4",
+        "instagram_reel_v34_all_kb_full.mp4",
+        "viral_test_v2.mp4",
+        "viral_test_v2_4k.mp4"
+      ],
+      "master": "absent - the parent timeline is not in the corpus",
+      "documented_by": null,
+      "shared_fingerprint": "9:16 coded (1080x1920 or 2160x3840), 30/1 CFR, yuv420p 8-bit, ALL four colour tags absent, h264 High level 41/51, has_b_frames 2, encoder libx264, no letterbox",
+      "provenance": "inferred",
+      "sub_pairs": [
+        {
+          "pair": [
+            "instagram_reel_test.mp4",
+            "instagram_reel_v34_all_kb_full.mp4"
+          ],
+          "relationship": "frame-locked, 813 frames each; differ in resolution (2x); divergence is step-changing and concentrated in the first ~40% of the timeline, NOT a uniform grade (corrected 2026-07-27 - see provenance_note below and REVIEW.md section 1.3)"
+        },
+        {
+          "pair": [
+            "viral_test_v2.mp4",
+            "viral_test_v2_4k.mp4"
+          ],
+          "relationship": "frame-locked, 437 frames each; differ in resolution (2x) only"
+        }
+      ]
+    }
+  ],
+  "cross_reference_summary": {
+    "sidecar": "/Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples/manifest.json",
+    "clips_claimed": 4,
+    "clips_present": 4,
+    "duration_agreements": 3,
+    "duration_disagreements": 1,
+    "corpus_files_undocumented_by_sidecar": [
+      "instagram_reel_test.mp4",
+      "instagram_reel_v34_all_kb_full.mp4",
+      "viral_test_v2.mp4",
+      "viral_test_v2_4k.mp4"
+    ],
+    "sidecar_total_duration_claim_s": 53.3,
+    "sidecar_total_size_mb_claim": 95.4,
+    "measured_total_duration_s": 53.3,
+    "measured_total_size_mb_decimal": 100.0,
+    "measured_total_size_mib": 95.4,
+    "notes": [
+      "summary.total_duration 53.3 balances only against the MEASURED 8.3 s for split_003, not against that clip's own claimed 8.33 s - the sidecar disagrees with itself.",
+      "split_params.filtered is false while summary.scenes_filtered is 3.",
+      "summary.scenes_detected is 7 but only 4 clips were written; the 3 unwritten scenes are not described anywhere.",
+      "The sidecar's source_file.path does not resolve on this machine; the file was found by content search at the archive path recorded under source_master.path.",
+      "summary.total_size_mb 95.4 is MEBIbytes, not megabytes: the four clips total 100,027,790 bytes = 100.0 MB decimal = 95.4 MiB. The claim is correct once the unit is read as MiB, so this is a labelling ambiguity rather than a discrepancy."
+    ],
+    "measured_total_bytes": 100027790
+  },
+  "corpus_wide_invariants": {
+    "container": "all 9 indexed media files are QuickTime/MP4, major_brand isom, compatible isomiso2avc1mp41",
+    "codec": "all h264, all yuv420p family, all progressive",
+    "frame_rate": "all 30/1 CFR - r_frame_rate == avg_frame_rate and duration == nb_frames/30 exactly, in every file",
+    "audio": "NO file in the corpus carries an audio stream. nb_streams == 1 everywhere",
+    "hard_cuts": "ZERO across all 9 indexed media files at threshold 10.0, and zero at the lax threshold 5.0 as well. Per-file scene-score maxima span 0.516-3.537, i.e. 10-80x below the synthetic positive control's 31.42/42.19. The corpus is single-shot material, not fast-cut montage",
+    "sar_dar": "no file declares sample_aspect_ratio or display_aspect_ratio; all framing is in the coded raster"
+  },
+  "archive_expansion": {
+    "added": "2026-07-27, this session",
+    "schema_note": "Full per-file depth (matching this document's files[] convention) is kept for the 6 raw masters below, since they are camera originals of comparable significance to the existing corpus. The 39 derivative clips use a COMPACT index instead of full files[]-depth entries: raw ffprobe JSON and scdet CSV are retained in full for every one under probe/, but replicating the full 20+-field schema 39 times added no information beyond what REVIEW.md sections 2.5/2.6/8 and the retained raw probe files already carry, and risked exactly the propagation-fragility problem already documented elsewhere in this pack. See REVIEW.md section 2.6 for the human-readable summary table and section 8 for the 7-manifest reconciliation this index supports.",
+    "genealogy_confirmed_2026_07_27": "DJI_20241029174803_0355_D.MP4 (raw camera master, in .drone_clips/.advanced/) is the camera original behind DJI_0355_proxy.mp4, confirmed by pixel-match PSNR y 29-40 dB at 7 of 9 sampled timestamps against a 15.5-19.6 dB same-pair floor. Full detail: REVIEW.md section 2.1a.",
+    "zero_hard_cuts_extends": true,
+    "zero_hard_cuts_note": "All 6 raw masters and all 39 derivative clips measured zero hard cuts (threshold 10.0, frames_at_or_above_5 zero except one frame-1 scdet warm-up artifact, see REVIEW.md section 2.6). The finding is not an artifact of the original 8-file corpus.",
+    "raw_masters": [
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/.advanced/DJI_20241029174803_0355_D.MP4",
+        "filename": "DJI_20241029174803_0355_D.MP4",
+        "size_bytes": 994725078,
+        "sha256": "fbf55068a6efe2baf6d2f2cc79421cf0726e76065ba2346606b859d5b67225e5",
+        "kind": "video",
+        "role": "camera_original_confirmed",
+        "provenance": "known",
+        "note": "CONFIRMED 2026-07-27 by pixel-match measurement (PSNR y 29-40 dB at 7/9 sampled timestamps vs a 15.5-19.6 dB same-pair floor) as the camera original behind DJI_0355_proxy.mp4 (this document's source_master entry). Read-only, in _archive/. Full detail: REVIEW.md section 2.1a. Also directly named as source_file by 5 of the 7 archive-expansion manifests (REVIEW.md section 8).",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 63.580183,
+          "bit_rate_bps": 125161650,
+          "nb_streams": 4
+        },
+        "video": {
+          "codec_name": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuv420p10le",
+          "colour": {
+            "color_space": "bt2020nc",
+            "color_primaries": "bt2020",
+            "color_transfer": "arib-std-b67",
+            "color_range": "tv"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 3811,
+          "scene_score_max": 1.379,
+          "scene_score_max_excluding_frame1_warmup": 1.379,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241029174803_0355_D.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241029174803_0355_D.scd.csv"
+        }
+      },
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/DJI_20241029173912_0350_D.MP4",
+        "filename": "DJI_20241029173912_0350_D.MP4",
+        "size_bytes": 255015141,
+        "sha256": "62ae1c9a04c1bdc47044c84a2e4687911f70436bd336952fae519c7b7bf0749a",
+        "kind": "video",
+        "role": "unrelated_raw_master",
+        "provenance": "known",
+        "note": "Camera-original drone flight, read-only, in _archive/. Never copied into this repo.",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 16.232883,
+          "bit_rate_bps": 125678299,
+          "nb_streams": 4
+        },
+        "video": {
+          "codec_name": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuv420p10le",
+          "colour": {
+            "color_space": "bt2020nc",
+            "color_primaries": "bt2020",
+            "color_transfer": "arib-std-b67",
+            "color_range": "tv"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 973,
+          "scene_score_max": 1.621,
+          "scene_score_max_excluding_frame1_warmup": 1.621,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241029173912_0350_D.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241029173912_0350_D.scd.csv"
+        }
+      },
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/DJI_20241029174007_0351_D.MP4",
+        "filename": "DJI_20241029174007_0351_D.MP4",
+        "size_bytes": 60919961,
+        "sha256": "82d7573aaa17ea549c7940d14d941c6ed6e2da1904ac088fa3ad5b065547b7e7",
+        "kind": "video",
+        "role": "unrelated_raw_master",
+        "provenance": "known",
+        "note": "Camera-original drone flight, read-only, in _archive/. Never copied into this repo.",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 3.8038,
+          "bit_rate_bps": 128124425,
+          "nb_streams": 4
+        },
+        "video": {
+          "codec_name": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuv420p10le",
+          "colour": {
+            "color_space": "bt2020nc",
+            "color_primaries": "bt2020",
+            "color_transfer": "arib-std-b67",
+            "color_range": "tv"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 228,
+          "scene_score_max": 1.377,
+          "scene_score_max_excluding_frame1_warmup": 1.377,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241029174007_0351_D.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241029174007_0351_D.scd.csv"
+        }
+      },
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/DJI_20241030011347_0341_D.MP4",
+        "filename": "DJI_20241030011347_0341_D.MP4",
+        "size_bytes": 400649119,
+        "sha256": "2d005727212f6c4b499fdd4a19317bbc004bc33d0563a9713ba1f29a28765ef6",
+        "kind": "video",
+        "role": "unrelated_raw_master",
+        "provenance": "known",
+        "note": "Camera-original drone flight, read-only, in _archive/. Never copied into this repo.",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 25.542183,
+          "bit_rate_bps": 125486257,
+          "nb_streams": 4
+        },
+        "video": {
+          "codec_name": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuv420p10le",
+          "colour": {
+            "color_space": "bt2020nc",
+            "color_primaries": "bt2020",
+            "color_transfer": "arib-std-b67",
+            "color_range": "tv"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 1531,
+          "scene_score_max": 1.06,
+          "scene_score_max_excluding_frame1_warmup": 1.06,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241030011347_0341_D.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241030011347_0341_D.scd.csv"
+        }
+      },
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/DJI_20241030011801_0346_D.MP4",
+        "filename": "DJI_20241030011801_0346_D.MP4",
+        "size_bytes": 376837753,
+        "sha256": "1a2a5b4f76e5da77c09df0e8f59ce5c0722b1f0b8b9137f7a05bd15418b851aa",
+        "kind": "video",
+        "role": "unrelated_raw_master",
+        "provenance": "known",
+        "note": "Camera-original drone flight, read-only, in _archive/. Never copied into this repo.",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 24.040683,
+          "bit_rate_bps": 125400015,
+          "nb_streams": 4
+        },
+        "video": {
+          "codec_name": "hevc",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuv420p10le",
+          "colour": {
+            "color_space": "bt709",
+            "color_primaries": "bt709",
+            "color_transfer": "bt709",
+            "color_range": "tv"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 1441,
+          "scene_score_max": 0.131,
+          "scene_score_max_excluding_frame1_warmup": 0.131,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241030011801_0346_D.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241030011801_0346_D.scd.csv"
+        }
+      },
+      {
+        "path": "/Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/DJI_20241029174916_0356_D_383181722.mov",
+        "filename": "DJI_20241029174916_0356_D_383181722.mov",
+        "size_bytes": 371720192,
+        "sha256": "965928e91f9fb6403400617866004b0b2f12bbb3a82bbcbe029af301a00dae17",
+        "kind": "video",
+        "role": "unrelated_raw_master",
+        "provenance": "known",
+        "note": "Camera-original drone flight, read-only, in _archive/. Never copied into this repo.",
+        "container": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration_s": 26.5265,
+          "bit_rate_bps": 112105311,
+          "nb_streams": 1
+        },
+        "video": {
+          "codec_name": "h264",
+          "width": 3840,
+          "height": 2160,
+          "r_frame_rate": "60000/1001",
+          "pix_fmt": "yuvj420p",
+          "colour": {
+            "color_space": "bt2020nc",
+            "color_primaries": "bt2020",
+            "color_transfer": "smpte2084",
+            "color_range": "pc"
+          }
+        },
+        "scene_analysis": {
+          "frames_scored": 1589,
+          "scene_score_max": 0.355,
+          "scene_score_max_excluding_frame1_warmup": 0.355,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/DJI_20241029174916_0356_D_383181722.json",
+          "scdet_csv": "data/reference_pack/probe/DJI_20241029174916_0356_D_383181722.scd.csv"
+        }
+      }
+    ],
+    "derivative_clips_index": [
+      {
+        "probe_basename": "highlights_5_22s__split_001_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_5_22s/manifest.json",
+        "duration_s": 22.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 660,
+          "scene_score_max": 1.343,
+          "scene_score_max_excluding_frame1_warmup": 1.343,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_5_22s__split_001_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_5_22s__split_001_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_5_22s__split_002_s60",
+        "source_manifest": ".drone_clips/.advanced/highlights_5_22s/manifest.json",
+        "duration_s": 22.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 660,
+          "scene_score_max": 0.608,
+          "scene_score_max_excluding_frame1_warmup": 0.608,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_5_22s__split_002_s60.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_5_22s__split_002_s60.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_5_22s__split_003_s58",
+        "source_manifest": ".drone_clips/.advanced/highlights_5_22s/manifest.json",
+        "duration_s": 9.966667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 299,
+          "scene_score_max": 2.323,
+          "scene_score_max_excluding_frame1_warmup": 2.323,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_5_22s__split_003_s58.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_5_22s__split_003_s58.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_001_s63",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 2.822,
+          "scene_score_max_excluding_frame1_warmup": 2.822,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_001_s63.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_001_s63.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_002_s62",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 3.47,
+          "scene_score_max_excluding_frame1_warmup": 3.47,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_002_s62.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_002_s62.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_003_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 3.566667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 107,
+          "scene_score_max": 7.828,
+          "scene_score_max_excluding_frame1_warmup": 7.828,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 1
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_003_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_003_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_004_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 2.002,
+          "scene_score_max_excluding_frame1_warmup": 2.002,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_004_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_004_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_005_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 3.143,
+          "scene_score_max_excluding_frame1_warmup": 3.143,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_005_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_005_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_006_s58",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.075,
+          "scene_score_max_excluding_frame1_warmup": 1.075,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_006_s58.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_006_s58.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights__split_007_s55",
+        "source_manifest": ".drone_clips/.advanced/highlights/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.565,
+          "scene_score_max_excluding_frame1_warmup": 1.565,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights__split_007_s55.json",
+          "scdet_csv": "data/reference_pack/probe/highlights__split_007_s55.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_best__split_001_s70",
+        "source_manifest": ".drone_clips/.advanced/highlights_best/manifest.json",
+        "duration_s": 7.7,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 231,
+          "scene_score_max": 2.129,
+          "scene_score_max_excluding_frame1_warmup": 2.129,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_best__split_001_s70.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_best__split_001_s70.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_best__split_002_s68",
+        "source_manifest": ".drone_clips/.advanced/highlights_best/manifest.json",
+        "duration_s": 6.333333,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 190,
+          "scene_score_max": 2.381,
+          "scene_score_max_excluding_frame1_warmup": 2.381,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_best__split_002_s68.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_best__split_002_s68.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_best__split_003_s65",
+        "source_manifest": ".drone_clips/.advanced/highlights_best/manifest.json",
+        "duration_s": 5.633333,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 169,
+          "scene_score_max": 1.536,
+          "scene_score_max_excluding_frame1_warmup": 1.536,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_best__split_003_s65.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_best__split_003_s65.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_best__split_004_s65",
+        "source_manifest": ".drone_clips/.advanced/highlights_best/manifest.json",
+        "duration_s": 10.6,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 318,
+          "scene_score_max": 1.569,
+          "scene_score_max_excluding_frame1_warmup": 1.569,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_best__split_004_s65.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_best__split_004_s65.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_best__split_005_s65",
+        "source_manifest": ".drone_clips/.advanced/highlights_best/manifest.json",
+        "duration_s": 5.6,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 168,
+          "scene_score_max": 1.898,
+          "scene_score_max_excluding_frame1_warmup": 1.898,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_best__split_005_s65.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_best__split_005_s65.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_001_s63",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.263,
+          "scene_score_max_excluding_frame1_warmup": 1.263,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_001_s63.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_001_s63.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_001_s64",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 13.566667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 407,
+          "scene_score_max": 1.263,
+          "scene_score_max_excluding_frame1_warmup": 1.263,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_001_s64.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_001_s64.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_002_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 25.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 750,
+          "scene_score_max": 2.234,
+          "scene_score_max_excluding_frame1_warmup": 2.234,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_002_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_002_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_002_s62",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.776,
+          "scene_score_max_excluding_frame1_warmup": 1.776,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_002_s62.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_002_s62.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_003_s60",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 25.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 750,
+          "scene_score_max": 0.933,
+          "scene_score_max_excluding_frame1_warmup": 0.933,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_003_s60.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_003_s60.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_003_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 3.566667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 107,
+          "scene_score_max": 4.691,
+          "scene_score_max_excluding_frame1_warmup": 4.691,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_003_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_003_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_004_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.41,
+          "scene_score_max_excluding_frame1_warmup": 1.41,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_004_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_004_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_005_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 2.118,
+          "scene_score_max_excluding_frame1_warmup": 2.118,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_005_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_005_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_006_s58",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 0.608,
+          "scene_score_max_excluding_frame1_warmup": 0.608,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_006_s58.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_006_s58.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_25s__split_007_s55",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_25s/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 0.838,
+          "scene_score_max_excluding_frame1_warmup": 0.838,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_25s__split_007_s55.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_25s__split_007_s55.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_001_s63",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.263,
+          "scene_score_max_excluding_frame1_warmup": 1.263,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_001_s63.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_001_s63.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_002_s62",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.776,
+          "scene_score_max_excluding_frame1_warmup": 1.776,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_002_s62.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_002_s62.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_003_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 3.566667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 107,
+          "scene_score_max": 4.691,
+          "scene_score_max_excluding_frame1_warmup": 4.691,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_003_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_003_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_004_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 1.41,
+          "scene_score_max_excluding_frame1_warmup": 1.41,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_004_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_004_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_005_s61",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 2.118,
+          "scene_score_max_excluding_frame1_warmup": 2.118,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_005_s61.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_005_s61.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_006_s58",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 0.608,
+          "scene_score_max_excluding_frame1_warmup": 0.608,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_006_s58.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_006_s58.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded__split_007_s55",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded/manifest.json",
+        "duration_s": 10.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 300,
+          "scene_score_max": 0.838,
+          "scene_score_max_excluding_frame1_warmup": 0.838,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded__split_007_s55.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded__split_007_s55.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_varied__split_001_s63",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_varied/manifest.json",
+        "duration_s": 23.566667,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 707,
+          "scene_score_max": 1.784,
+          "scene_score_max_excluding_frame1_warmup": 1.784,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_varied__split_001_s63.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_varied__split_001_s63.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_graded_varied__split_002_s60",
+        "source_manifest": ".drone_clips/.advanced/highlights_graded_varied/manifest.json",
+        "duration_s": 40.0,
+        "width": 3840,
+        "height": 2160,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 1200,
+          "scene_score_max": 1.35,
+          "scene_score_max_excluding_frame1_warmup": 1.35,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_graded_varied__split_002_s60.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_graded_varied__split_002_s60.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_long__split_001_s69",
+        "source_manifest": ".drone_clips/.advanced/highlights_long/manifest.json",
+        "duration_s": 15.5,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 465,
+          "scene_score_max": 2.563,
+          "scene_score_max_excluding_frame1_warmup": 2.563,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_long__split_001_s69.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_long__split_001_s69.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_long__split_001_s70",
+        "source_manifest": ".drone_clips/.advanced/highlights_long/manifest.json",
+        "duration_s": 22.0,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 660,
+          "scene_score_max": 2.435,
+          "scene_score_max_excluding_frame1_warmup": 2.435,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_long__split_001_s70.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_long__split_001_s70.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_long__split_002_s65",
+        "source_manifest": ".drone_clips/.advanced/highlights_long/manifest.json",
+        "duration_s": 16.666667,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 500,
+          "scene_score_max": 0.516,
+          "scene_score_max_excluding_frame1_warmup": 0.516,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_long__split_002_s65.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_long__split_002_s65.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_long__split_002_s69",
+        "source_manifest": ".drone_clips/.advanced/highlights_long/manifest.json",
+        "duration_s": 17.0,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 510,
+          "scene_score_max": 2.435,
+          "scene_score_max_excluding_frame1_warmup": 2.435,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_long__split_002_s69.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_long__split_002_s69.scd.csv"
+        }
+      },
+      {
+        "probe_basename": "highlights_long__split_003_s65",
+        "source_manifest": ".drone_clips/.advanced/highlights_long/manifest.json",
+        "duration_s": 16.666667,
+        "width": 1280,
+        "height": 720,
+        "color_space": "bt709",
+        "scene_analysis": {
+          "frames_scored": 500,
+          "scene_score_max": 0.516,
+          "scene_score_max_excluding_frame1_warmup": 0.516,
+          "hard_cut_count": 0,
+          "frames_at_or_above_5": 0
+        },
+        "probe_artefacts": {
+          "ffprobe_json": "data/reference_pack/probe/highlights_long__split_003_s65.json",
+          "scdet_csv": "data/reference_pack/probe/highlights_long__split_003_s65.scd.csv"
+        }
+      }
+    ],
+    "manifest_reconciliation": {
+      "manifests_reconciled": 7,
+      "adversarially_verified": false,
+      "verification_caveat": "6 of the 7 manifest reconciliations (all except highlights_long) were produced by a workflow run interrupted by an infrastructure failure before an independent adversarial skeptic pass could run. Their findings are recorded here and in REVIEW.md section 8 from that run's own evidence-cited output, not re-verified by a second measurement. Treat with correspondingly less certainty than a skeptic-confirmed claim elsewhere in this pack.",
+      "original_findings_generalization": {
+        "auto_speed_no_op": "UNTESTABLE beyond the original manifest - the auto_speed key is absent from all 7 archive manifests, never re-exercised.",
+        "color_luma_only_chroma_inert": "GENERALIZES as a category (chroma always inert) across all 6 manifests that declare a color grade, but the specific luma direction/magnitude is source- or run-specific, not a fixed function of color_intensity - highlights_graded's luma direction is OPPOSITE the original manifest's.",
+        "scene_threshold_incommensurable": "GENERALIZES AND STRENGTHENS - every manifest's scene_threshold sits further above its own source's measured scdet ceiling than the original's ~4x gap; highlights_graded_25s reaches ~36x, the widest gap in this pack.",
+        "boundaries_not_content_derived": "GENERALIZES AND STRENGTHENS - highlights_graded shows 7/7 boundaries at or below median scdet rank forming a gap-free mechanical grid, the strongest evidence in this pack that scenes_detected tracks output-clip count, not real segmentation."
+      },
+      "new_findings_unique_to_archive": [
+        "highlights_graded_25s: manifest documents 3 clips, 10 actual files exist on disk (7 undocumented).",
+        "highlights_long: manifest documents 3 clips, 5 actual files exist, 2 of which (split_002_s65.mp4, split_003_s65.mp4) are byte-identical duplicates (sha256 c86f8072c363bb2af060f20899d748ceacf1eb979a90240f0192e495ec7f926f).",
+        "highlights_best: scenes_detected(15) - scenes_filtered(0) = 15 against total_clips 5, a 200% mismatch, the widest scenes-vs-clips gap in this pack.",
+        "highlights_best: one clip's declared duration field contradicts its own declared start_time/end_time in the same manifest.",
+        "highlights manifest: undocumented frame-rate conversion, 59.94fps raw source to exact CFR 30/1 output, not declared anywhere in split_params."
+      ],
+      "see_also": "REVIEW.md section 8 for the full per-manifest parameter table and discussion."
+    },
+    "raw_masters_count": 6
+  }
+}

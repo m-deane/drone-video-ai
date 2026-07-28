@@ -11,7 +11,7 @@ Reference for skill disambiguation when multiple skills could match or no hookif
 
 | Cluster | Core skills | Discriminating signals | Negative signals (NOT this cluster) |
 |---------|------------|----------------------|-------------------------------------|
-| build | spec-first, tdd-feature, feature-dev, eval-harness, mcp-builder, generate-tests, refactor-code | "implement", "create", "add feature", "build", "write code for" | "review", "check", "audit" |
+| build | spec-first, tdd-feature, full-project, eval-harness, mcp-builder, generate-tests, refactor-code | "implement", "create", "add feature", "build", "write code for" | "review", "check", "audit" |
 | review | code-review, architecture-review, security-scan, review-schema-changes, red-team, hallucination-check, rubric-eval, prompt-critique-rewrite | "review", "check", "audit", "evaluate", "is this safe" | "implement", "build", "create" |
 | debug | debug-test-failure, verify-implementation, explain-code | "fix", "failing", "broken", "error", "debug", "why isn't" | "implement new", "add feature" |
 | orchestrate | sprint, launch-agent-team, resume, retry, qa-iterate, goal, compose | "sprint", "agents", "parallel", "orchestrate", "recipe" | single-file changes |
@@ -50,7 +50,13 @@ Skills with no hookify rule — route manually when these phrases appear:
 | "balanced view on" / "both sides of" / "fair assessment" | balanced-research |
 | "version this skill" / "snapshot this prompt" / "promote v2" / "roll back the skill" / "version history" | version-prompt |
 | "evaluate this prompt across the dataset" / "score this summariser on all examples" / "dataset scorecard" | eval-runner |
-| "verify against the source" / "is this summary faithful" / "check faithfulness" | hallucination-check (with `--source`) |
+| "remeasure manual parity" / "ACHIEVED aggregator" / "verify manuals structure" | manual-parity (claude-template only — not synced) |
+| "generate API docs" / "document the endpoints" / "docs from the routers" | generate-api-documentation |
+| "approve the spec" / "sign off before implementation" / "gate this phase" | phase-gate |
+| "what sections should my prompt have" / "scaffold a prompt" / "what am I missing from my prompt" | prompt-scaffold |
+| "update the docs" / "sync the docs with the code" | update-docs |
+| "test the notebooks" / "validate notebooks" / "check notebooks still work" | validate-notebooks |
+| "test the web app" / "check the frontend with Playwright" / "screenshot the browser" | webapp-testing |
 
 ## Recipe Index
 
@@ -65,3 +71,4 @@ Multi-skill chains — invoke via `/compose {recipe-name}`:
 | prompt-engineering | generate-prompt -> prompt-critique-rewrite -> stability-test | "create and test a prompt" |
 | eval-summarisation | stability-test -> rubric-eval -> hallucination-check (--source) | "evaluate summarisation", "run summarisation eval", "test summarisation quality" (one email; for the whole dataset use the `/eval-runner` skill, which loops this recipe per example) |
 | prompt-versioning | version-prompt create -> eval -> compare -> promote | "version this skill", "ship this skill change", "promote this prompt" |
+| manual-parity-remeasure (claude-template only — not synced) | session-conditioner -> stability-test (K=5) -> hallucination-check --source -> rubric-eval -> manual-parity aggregate | "remeasure manual parity", "K=5 manual parity", "ACHIEVED aggregator" |

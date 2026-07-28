@@ -114,11 +114,13 @@ Dispatch to the matching step below.
 ## Step 5 — promote (Tier B — confirm before executing)
 
 1. Require an explicit `vN` to promote. Read its registry entry.
-2. Enforce the promotion gate. ALL must hold, or refuse:
+2. Enforce the promotion gate (must stay at parity with `promptlab/gate.py`). ALL must hold, or refuse:
    - `eval_scores` are present (the version has been evaluated).
    - `stability_score ≥ 0.80`.
    - Its weighted overall is `≥` the active version's.
    - It scores `≥ active − 0.02` on EVERY rubric criterion (the noise-floor tolerance — a ≤ 0.02 dip on one criterion is a tie, not a regression). A regression > 0.02 on any criterion blocks promotion.
+   - **Evidence provenance:** `scores.json` for this skill carries per-example evidence records whose executor is not `manual` (fabricated/hand-typed evidence cannot certify). If provenance is missing because the run was CLI-skill-produced before this field existed, print a visible provenance note and continue only when every other gate holds — prefer re-running `/eval-runner` to stamp verifiable evidence.
+   - **Faithfulness:** every per-example record includes a faithfulness verdict; **no** example is `UNFAITHFUL`; unsupported-claim counts respect `max_unsupported_claims` (default 0 unless the dataset overrides). An `UNFAITHFUL` example blocks promotion (same precedence as `promptlab/gate.py`).
    If any condition fails, print which one and stop — do not promote. When a criterion is within the noise floor (a tie), say so explicitly in the output.
 3. State the reversible action in one sentence and ask for confirmation:
    > About to overwrite the live skill `{SKILL_DIR}/SKILL.md` with `{skill-name} {vN}`. The current active version will be marked `superseded`. Confirm? (yes/no)

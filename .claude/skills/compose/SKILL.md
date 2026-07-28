@@ -1,7 +1,7 @@
 ---
 name: compose
 description: Execute a named multi-skill recipe — reads a YAML recipe file and orchestrates sequential skill invocations with gates between steps
-argument-hint: "[recipe-name] (one of: feature-development, skill-authoring, post-sprint, debug-to-fix, prompt-engineering)"
+argument-hint: "[recipe-name] (one of: feature-development, skill-authoring, post-sprint, debug-to-fix, prompt-engineering, eval-summarisation, prompt-versioning, manual-parity-remeasure (claude-template only))"
 allowed-tools: Read, Bash, Skill
 cluster: orchestrate
 priority: 30

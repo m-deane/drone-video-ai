@@ -1,7 +1,7 @@
 ---
 name: goal
 description: Orchestrates the full Bayesian pipeline for a session goal — conditions setup at entry, completion gate at close. Chains session-conditioner → evidence-injection-template → condition-audit at start; checkpoint-gate → synthesis-validator at completion.
-argument-hint: "[implementation|debug|architecture|review] | [complete {sprint_id}]"
+argument-hint: "[implementation|feature|debug|architecture|review|code-review] | [complete {sprint_id}]"
 allowed-tools: Read, Write, Bash, Skill
 cluster: orchestrate
 priority: 50
@@ -22,7 +22,11 @@ Goal: Establish operative session conditions for a stated goal at entry, and ver
 ## Parse Arguments
 
 From $ARGUMENTS, extract:
-- **Mode**: must be exactly one of `implementation`, `debug`, `architecture`, `review`. Match case-insensitively against those four values only. If $ARGUMENTS does not contain any of those four words, do NOT infer — instead ask: "Which mode? implementation / debug / architecture / review." Do not treat any other text in $ARGUMENTS as a mode value.
+- **Mode**: accept one of `implementation`, `feature`, `debug`, `architecture`, `review`, `code-review` (case-insensitive). Normalize aliases before calling `/evidence-injection-template`:
+  - `implementation` → `feature`
+  - `review` → `code-review`
+  - `feature`, `code-review`, `debug`, `architecture` → unchanged
+  If $ARGUMENTS does not contain any of those six words, do NOT infer — instead ask: "Which mode? implementation (alias: feature) / debug / architecture / review (alias: code-review)." Do not treat any other text in $ARGUMENTS as a mode value. Persist the **normalized** mode (`feature` | `debug` | `architecture` | `code-review`) in the goal file.
 - **Phase**: if $ARGUMENTS starts with the word `complete` (case-insensitive), this is a completion run. Extract `{sprint_id}` as the next whitespace-delimited token. If no token follows `complete`, ask: "Which sprint ID to complete?"
 
 ---
@@ -58,7 +62,8 @@ If conditions are already present, skip to Step 3.
 
 ### Step 3 — Dispatch /evidence-injection-template
 
-Run `/evidence-injection-template {mode}` to emit the mode-specific pre-filled conditions block.
+Run `/evidence-injection-template {normalized_mode}` to emit the mode-specific pre-filled conditions block.
+Use only the normalized values `feature` | `debug` | `architecture` | `code-review` (see Parse Arguments aliases).
 
 The emitted block will include L1–L6 and Switch variables. Hold the output — do not dispatch agents yet.
 
@@ -82,12 +87,16 @@ Write the operative conditions to `.claude_plans/goal-{SPRINT_ID}.md` (create di
 ```markdown
 # Goal — {SPRINT_ID}
 
-Mode: {mode}
+Mode: {normalized_mode}
 Started: {timestamp}
 
 ## Conditions Block
 
 {full L1–L6 + Switch variables block from Step 3, post-audit}
+
+## Expected Agents
+
+{space-separated agent checkpoint basenames planned for this sprint, e.g. `agent-A agent-B` — or `TBD` if unknown at entry; update before `/goal complete`}
 
 ## Completion Gate
 
@@ -99,7 +108,7 @@ Print:
 > Goal conditions written. Sprint ID: `{SPRINT_ID}`. When work is complete, run `/goal complete {SPRINT_ID}` to run the completion gate.
 
 Switch variables:
-  mode            : {mode} — wrong assumption → conditions block uses wrong template (implementation vs debug produce categorically different constraints)
+  mode            : {normalized_mode} — wrong assumption → conditions block uses wrong template (feature vs debug produce categorically different constraints); aliases implementation→feature and review→code-review must be applied before evidence-injection
   l3-form         : L3 must be an observable outcome ("user can do X") not a task description ("implement X") — wrong assumption → agent stops at "code written", not "feature works"
   completion-gate : /checkpoint-gate fires before /synthesis-validator — wrong assumption → synthesis runs without verifying all agent output files exist
 
@@ -109,24 +118,32 @@ Switch variables:
 
 ### Step 1 — Read Goal File
 
-Read `.claude_plans/goal-{sprint_id}.md` to recover the declared L3 objective and mode.
+Read `.claude_plans/goal-{sprint_id}.md` to recover the declared L3 objective, normalized mode, and `## Expected Agents` list (if present).
 
-### Step 2 — Run /checkpoint-gate
+### Step 2 — Resolve expected agent list
 
-Run `/checkpoint-gate {sprint_id}` to verify all expected agent checkpoint files exist and are non-empty.
+Build the agent list for `/checkpoint-gate` in this order (first non-empty wins):
 
-- If gate returns COMPLETE: proceed to Step 3.
+1. **From goal file:** tokens under `## Expected Agents` excluding the placeholder `TBD`.
+2. **Auto-discover:** basenames (no `.md`) of files matching `agent-*.md` under `.claude/checkpoints/{sprint_id}/` and, if that directory is missing, under any `.claude/checkpoints/{sprint_id}-*/` directory that exists.
+3. **Still empty:** print `Expected agent list required. Update ## Expected Agents in .claude_plans/goal-{sprint_id}.md or pass agents explicitly: /checkpoint-gate {sprint_id} agent-1 agent-2 …` and stop — do not run synthesis.
+
+### Step 3 — Run /checkpoint-gate
+
+Run `/checkpoint-gate {sprint_id} {resolved-agent-names…}` (positional form) against the checkpoint directory that contains those files. If auto-discover used a `{sprint_id}-*` suffix directory, pass that full directory name as sprint_id to checkpoint-gate (checkpoint-gate resolves `.claude/checkpoints/{sprint_id}/`).
+
+- If gate returns COMPLETE: proceed to Step 4.
 - If gate returns INCOMPLETE: list missing checkpoints. Do not run synthesis until all checkpoints are present.
 
-### Step 3 — Run /synthesis-validator
+### Step 4 — Run /synthesis-validator
 
 Run `/synthesis-validator` to verify that every conclusion stated in the session traces to a named agent's L3 checkpoint — not to inference or assumption.
 
-### Step 4 — Optional: /rubric-eval
+### Step 5 — Optional: /rubric-eval
 
 If the goal involved measurable quality criteria (test pass rate, lint score, performance target), run `/rubric-eval` with appropriate criteria to score the output.
 
-### Step 5 — Verdict
+### Step 6 — Verdict
 
 Print one of:
 

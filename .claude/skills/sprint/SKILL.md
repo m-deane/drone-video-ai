@@ -149,7 +149,15 @@ Rule: if the agent decides *what* to build → opus. If the agent builds *what w
 
 ### 0-pre. Fact-Check Agent Checkpoints (run before Artifact Verification)
 
-Dispatch the fact-checker agent (blocking — `run_in_background: false`) against each agent checkpoint file in sequence. Pass the full checkpoint content as input.
+First check whether the fact-checker agent exists in this repo:
+
+```bash
+ls .claude/agents/fact-checker.md 2>/dev/null && echo "FACT_CHECKER_PRESENT" || echo "FACT_CHECKER_ABSENT"
+```
+
+**If FACT_CHECKER_ABSENT**: skip this entire step and print to the user: "WARNING — `.claude/agents/fact-checker.md` not found. `.claude/agents/` is not copied by `sync-claude-template.sh`, so this repo has no fact-checker agent. Agent checkpoint claims are UNVERIFIED for this sprint — Artifact Verification below checks that claimed files exist on disk, not that the claims about them are factually accurate. Review checkpoint contents manually before trusting them." Then continue to Artifact Verification below.
+
+**If FACT_CHECKER_PRESENT**: dispatch the fact-checker agent (blocking — `run_in_background: false`) against each agent checkpoint file in sequence. Pass the full checkpoint content as input.
 
 For each checkpoint:
 1. Invoke: `Agent tool → fact-checker.md, input: contents of .claude/checkpoints/{sprint_id}/{agent_name}.md`
@@ -160,7 +168,7 @@ For each checkpoint:
    - Re-dispatch the originating agent with a corrected L5 Facts block listing only verified paths
 4. If all claims are verified (0 MISSING): proceed to Artifact Verification for this checkpoint
 
-Only after fact-checker passes all checkpoint files: continue to Artifact Verification below.
+In the FACT_CHECKER_PRESENT branch, only after the fact-checker passes all checkpoint files: continue to Artifact Verification below.
 
 ### 0. Artifact Verification (run before quality gate)
 For each agent checkpoint file, extract the "Files created or modified" list and verify each path exists:

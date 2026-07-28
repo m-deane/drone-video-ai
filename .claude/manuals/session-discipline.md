@@ -140,8 +140,12 @@ gate, which is enforceable:
 
 - **Reversibility gate (pass criterion):** before any `git push`, PR creation, file deletion,
   or external API call, a one-sentence statement of the action was emitted and — for Tier C —
-  explicit confirmation was received. If a push happened with no preceding statement, the gate
-  failed.
+  explicit confirmation was received. **For a push specifically:** run `git remote -v` and
+  resolve the current branch with `git branch --show-current` **before** the statement (never
+  assume `origin` or `main` — root `CLAUDE.md` → `## Git Remotes`; `/safe-push` enforces
+  confirm remote → quality gate → push). The one-sentence statement must use those confirmed
+  names. If a push happened with no preceding statement, with a hardcoded `origin`/`main`, or
+  without the remote confirmed, the gate failed.
 - **Grounding gate (pass criterion):** every file path / command / skill name in the output
   resolves. One check per token type:
   - file path → `ls PATH`;
@@ -165,9 +169,11 @@ gate, which is enforceable:
 
 **Example 1 — reversibility gate on "proceed".**
 Input: assistant has just said it will push; user types `proceed`.
-Expected output (verbatim pattern from root CLAUDE.md):
-`Proceeding with: push to origin/main. This affects the remote — confirm? (yes/no)`
-Do **not** push until an explicit "yes".
+Correct sequence:
+1. Run `git remote -v` and `git branch --show-current` (never assume `origin` or `main`).
+2. State (names from those commands — placeholders shown here):
+   `Proceeding with: push to {confirmed-remote}/{confirmed-branch}. This affects the remote — confirm? (yes/no)`
+3. Do **not** push until an explicit "yes". Hardcoding `origin` or `main` in the statement fails the gate.
 
 **Example 2 — grounding an unverified function.**
 Input: user asks "does `extract_pattern` exist in the routing test?"

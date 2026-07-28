@@ -1,7 +1,7 @@
 ---
 name: evidence-injection-template
 description: Produces a scenario-specific evidence injection template pre-filled with the discriminating conditions for code-review, debug, architecture, or feature dispatch scenarios. Each template adds the fields that differ from the generic Conditions block for that scenario type.
-argument-hint: "[code-review | debug | architecture | feature]"
+argument-hint: "[code-review | review | debug | architecture | feature | implementation]"
 allowed-tools: Read, Bash
 cluster: prompt-eng
 priority: 50
@@ -20,7 +20,7 @@ Goal: Produce a scenario-typed evidence template with the discriminating conditi
 ## Parse Arguments
 
 From $ARGUMENTS, extract:
-- **Mode**: one of `code-review`, `debug`, `architecture`, `feature`. If not provided, print the available modes and ask the user to choose.
+- **Mode**: one of `code-review`, `review`, `debug`, `architecture`, `feature`, `implementation`. Normalize aliases: `review` → `code-review`, `implementation` → `feature`. If not provided, print the available modes and ask the user to choose.
 
 ## Auto-Load Project Context
 
@@ -29,9 +29,11 @@ Read L1 from CLAUDE.md:
 grep "^\*\*Stack\*\*" CLAUDE.md 2>/dev/null | sed 's/\*\*Stack\*\*: //' | head -1
 ```
 
-Read project structure for L5 Facts population:
+Read project structure for L5 Facts population (first path that exists):
 ```bash
-ls src/ 2>/dev/null | head -20
+ls src/ 2>/dev/null | head -20 \
+  || ls .claude/skills/ 2>/dev/null | head -20 \
+  || ls . 2>/dev/null | head -20
 ```
 
 **L5 reference paths** (adapt to your project's actual structure — check CLAUDE.md Architecture section):

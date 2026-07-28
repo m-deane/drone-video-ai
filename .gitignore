@@ -2,12 +2,17 @@
 
 # Inherited claude-template maintainer content — not part of this project.
 # Disposition (delete/keep/move) is an open prerequisite decision (see spec Open Questions #7).
+#
+# NOTE (2026-07-28): /CLAUDE.md was previously listed in this block and has been REMOVED from it.
+# It is not inherited content — the root CLAUDE.md is this project's primary operating document
+# (36 hits for drone_video_ai / reference_pack / drone-video-examples, against 0 in the genuinely
+# inherited README.md and TODO.md). Leaving it here would have excluded the one file that explains
+# the project from the repository's first commit.
 /README.md
 /CHANGELOG.md
 /TODO.md
 /REVIEW.md
 /PROMPTLAB-READINESS.md
-/CLAUDE.md
 /docs/
 /promptlab/
 /copilot-studio/
@@ -29,6 +34,30 @@
 /data/output/
 /data/reference_pack/media/*
 !/data/reference_pack/media/.gitkeep
+
+# Working footage tree — 112 GB, 453 camera-original DJI .MP4/.SRT files from a July 2026 shoot
+# (Khorog / Murghab / Langar / Karakul). This is primary capture, not a mirror and not regenerable.
+# It must never enter git: it would exceed every practical repository limit and is the user's
+# footage, not this project's measurement output. Added 2026-07-28 — it was previously unignored,
+# so the repository's first `git add .` would have attempted to stage all 112 GB.
+/00-WORKING/
+
+# Hook activity log — appended to on every tool call, regenerable, and pure session noise.
+# Root CLAUDE.md ("## Hooks") already describes this file as gitignored; until 2026-07-28 it was
+# not, and that claim was stale. This rule makes the documentation true.
+/.claude/activity.md
+
+# Consolidated local copy of source drone footage (~3.8GB) — a convenience mirror of the
+# read-only 00-assets/drone-video-examples/ and _archive/ trees (CLAUDE.md "Source footage"
+# table). Never authoritative provenance and never committed; regenerate by re-copying.
+/data/raw/
+
+# Third-party best-in-class REFERENCE videos (targets to aim at, not source material).
+# Never committed — these are all-rights-reserved works by other creators, held locally for
+# study only. data/reference/REGISTRY.md (the curated catalogue) and data/reference/probe/
+# (measurements about them) ARE tracked; the video files themselves never are.
+/data/reference/videos/*
+!/data/reference/videos/.gitkeep
 
 # Python
 /.venv/

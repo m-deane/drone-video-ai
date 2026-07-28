@@ -29,9 +29,16 @@ OR 10+ tool calls** (either alone is sufficient), write
 commits, in-progress work, and decisions made this session — *before* dispatching any agent
 team. Name the pre-dispatch dir **identically to the sprint dir it precedes, plus the
 `-pre-dispatch` suffix** (e.g. `20260609-promptlab-pre-dispatch` pairs with sprint dir
-`20260609-promptlab`).
+`20260609-promptlab`). Use the **sprint slug** (`{sprint-label}`), never a bare wall-clock
+timestamp — `{sprint-label}` is the sprint directory name, not `{YYYYMMDD-HHMMSS}`.
 
 **Counting the trigger deterministically (no session memory required).**
+- *Stated-premise short-circuit (check this FIRST):* if the task or user has already asserted
+  the session's scale ("several commits", "many tool calls"), take that as the determination —
+  treat the trigger as **FIRED** and do NOT re-derive a count. The raw `grep -c` on the
+  **cross-session** `.claude/activity.md` is a cross-session total, not a this-session tally, and
+  `git merge-base HEAD <base>` returns a different count per base ref (`origin/main` vs `main`),
+  so re-deriving yields contradictory numbers rather than a check.
 - *Commits this session:* `git log --oneline -5` has no session boundary. Count only commits
   after the ref you branched from — e.g. `git log --oneline $(git merge-base HEAD main)..HEAD`
   (substitute your base branch) — or, if no anchor is available, treat the count as unknown.
@@ -46,6 +53,7 @@ team. Name the pre-dispatch dir **identically to the sprint dir it precedes, plu
 | IF | THEN |
 |----|------|
 | task needs ≤ 4–5 agents | dispatch one wave |
+| parity / underspecified "3-agent multi-domain" task with no roster named | use the **canonical roster**: `hookify-routing`, `sync-and-release`, `docs-site` — one wave; write flat `{agent_name}.md` checkpoints in the sprint dir (no per-agent subdirs). **Canonical response headings (in order):** `## Pre-dispatch checkpoint` → `## Wave sizing` → `## Per-agent prompt discipline` → `## Synthesis gate` → `## Pass criterion` |
 | task needs 6+ agents | sequential waves, `/resume` between waves. Partition rule: fill each wave to the max of 5 before opening the next (6 → 5+1, 9 → 5+4, 11 → 5+5+1) unless an ordering dependency forces a producer agent into an earlier wave (combined output of >5 agents floods the orchestrating context) |
 | session has 3+ commits OR 10+ tool calls | write the pre-dispatch checkpoint first |
 | an agent returns `API Error: Stream idle timeout - partial response received` | run `/retry` immediately |

@@ -243,8 +243,13 @@ class WorkflowOrchestrator {
     this.running.add(task.id);
 
     try {
+      // Pre-execution hooks
       await this.runPreHooks(task);
+      
+      // Task execution
       const result = await this.runTaskByType(task);
+      
+      // Post-execution hooks
       await this.runPostHooks(task, result);
 
       taskExecution.endTime = Date.now();
@@ -255,6 +260,7 @@ class WorkflowOrchestrator {
       this.completed.add(task.id);
       this.running.delete(task.id);
 
+      // Handle success callbacks
       if (task.on_success) {
         await this.executeCallbacks(task.on_success, taskExecution);
       }
@@ -269,12 +275,108 @@ class WorkflowOrchestrator {
       this.failed.add(task.id);
       this.running.delete(task.id);
 
+      // Handle failure callbacks
       if (task.on_failure) {
         await this.executeCallbacks(task.on_failure, taskExecution);
       }
 
       throw error;
     }
+  }
+
+  async runTaskByType(task) {
+    switch (task.type) {
+      case 'shell':
+        return await this.executeShellTask(task);
+      case 'http':
+        return await this.executeHttpTask(task);
+      case 'docker':
+        return await this.executeDockerTask(task);
+      case 'javascript':
+        return await this.executeJavaScriptTask(task);
+      case 'python':
+        return await this.executePythonTask(task);
+      default:
+        throw new Error(`Unknown task type: ${task.type}`);
+    }
+  }
+}
+```
+
+### Task Types Implementation
+
+#### Shell Task
+```javascript
+async executeShellTask(task) {
+  const { spawn } = require('child_process');
+  
+  return new Promise((resolve, reject) => {
+    const process = spawn('sh', ['-c', task.command], {
+      cwd: task.cwd || process.cwd(),
+      env: { ...process.env, ...task.environment },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    process.stdout.on('data', (data) => {
+      stdout += data.toString();
+      if (task.live_output) {
+        console.log(data.toString());
+      }
+    });
+
+    process.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    const timeout = setTimeout(() => {
+      process.kill('SIGKILL');
+      reject(new Error(`Task timeout after ${task.timeout}ms`));
+    }, task.timeout || 300000);
+
+    process.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve({ stdout, stderr, exitCode: code });
+      } else {
+        reject(new Error(`Shell command failed with exit code ${code}: ${stderr}`));
+      }
+    });
+  });
+}
+```
+
+#### HTTP Task
+```javascript
+async executeHttpTask(task) {
+  const axios = require('axios');
+  
+  const config = {
+    method: task.method || 'GET',
+    url: task.url,
+    headers: task.headers || {},
+    timeout: task.timeout || 30000
+  };
+
+  if (task.data) {
+    config.data = task.data;
+  }
+
+  if (task.auth) {
+    config.auth = task.auth;
+  }
+
+  try {
+    const response = await axios(config);
+    return {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    };
+  } catch (error) {
+    throw new Error(`HTTP request failed: ${error.message}`);
   }
 }
 ```
@@ -284,6 +386,8 @@ class WorkflowOrchestrator {
 ### Cron Integration
 ```bash
 #!/bin/bash
+# setup-workflow-cron.sh
+
 # Daily backup workflow
 0 2 * * * cd /path/to/project && node workflow-engine.js run backup-workflow.json
 
@@ -292,6 +396,112 @@ class WorkflowOrchestrator {
 
 # Weekly cleanup
 0 0 * * 0 cd /path/to/project && node workflow-engine.js run cleanup-workflow.json
+```
+
+### Systemd Timer (Linux)
+```ini
+# /etc/systemd/system/workflow-orchestrator.timer
+[Unit]
+Description=Workflow Orchestrator Timer
+Requires=workflow-orchestrator.service
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+## Monitoring and Alerting
+
+### Workflow Metrics Dashboard
+```javascript
+class WorkflowMonitor {
+  constructor() {
+    this.metrics = {
+      totalRuns: 0,
+      successfulRuns: 0,
+      failedRuns: 0,
+      averageDuration: 0,
+      taskMetrics: new Map()
+    };
+  }
+
+  recordExecution(execution) {
+    this.metrics.totalRuns++;
+    
+    if (execution.status === 'completed') {
+      this.metrics.successfulRuns++;
+    } else {
+      this.metrics.failedRuns++;
+    }
+
+    // Update average duration
+    const totalDuration = this.metrics.averageDuration * (this.metrics.totalRuns - 1) + execution.duration;
+    this.metrics.averageDuration = totalDuration / this.metrics.totalRuns;
+
+    // Record task metrics
+    for (const [taskId, task] of Object.entries(execution.tasks)) {
+      if (!this.metrics.taskMetrics.has(taskId)) {
+        this.metrics.taskMetrics.set(taskId, {
+          runs: 0,
+          failures: 0,
+          averageDuration: 0
+        });
+      }
+
+      const taskMetrics = this.metrics.taskMetrics.get(taskId);
+      taskMetrics.runs++;
+      
+      if (task.status === 'failed') {
+        taskMetrics.failures++;
+      }
+
+      const taskTotalDuration = taskMetrics.averageDuration * (taskMetrics.runs - 1) + task.duration;
+      taskMetrics.averageDuration = taskTotalDuration / taskMetrics.runs;
+    }
+  }
+
+  getHealthReport() {
+    const successRate = (this.metrics.successfulRuns / this.metrics.totalRuns) * 100;
+    
+    return {
+      overall: {
+        successRate: successRate.toFixed(2) + '%',
+        totalRuns: this.metrics.totalRuns,
+        averageDuration: (this.metrics.averageDuration / 1000).toFixed(2) + 's'
+      },
+      tasks: this.getTaskHealthReport()
+    };
+  }
+}
+```
+
+### Alert Configuration
+```json
+{
+  "alerts": [
+    {
+      "name": "workflow-failure",
+      "condition": "execution.status === 'failed'",
+      "channels": ["slack", "email"],
+      "template": "Workflow ${workflow.name} failed: ${error.message}"
+    },
+    {
+      "name": "high-failure-rate",
+      "condition": "metrics.successRate < 90",
+      "channels": ["slack"],
+      "template": "Workflow success rate dropped to ${metrics.successRate}%"
+    },
+    {
+      "name": "long-duration",
+      "condition": "execution.duration > workflow.expected_duration * 2",
+      "channels": ["email"],
+      "template": "Workflow taking unusually long: ${execution.duration}ms"
+    }
+  ]
+}
 ```
 
 ## CLI Interface
@@ -313,8 +523,61 @@ workflow monitor --live
 # View execution history
 workflow history --limit 10
 
+# Get workflow status
+workflow status --execution-id abc123
+
 # Validate workflow
 workflow validate deployment-workflow.json
+
+# Generate workflow from template
+workflow generate --type "ci-cd" --output ci-workflow.json
+```
+
+## Integration Examples
+
+### Slack Integration
+```javascript
+async function sendSlackNotification(message, channel = '#deployments') {
+  const webhook = process.env.SLACK_WEBHOOK_URL;
+  
+  await axios.post(webhook, {
+    channel: channel,
+    text: message,
+    username: 'Workflow Orchestrator',
+    icon_emoji: ':gear:'
+  });
+}
+```
+
+### Docker Integration
+```json
+{
+  "id": "docker-build",
+  "name": "Build Docker image",
+  "type": "docker",
+  "config": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "tags": ["myapp:latest", "myapp:${env.BUILD_NUMBER}"],
+    "build_args": {
+      "NODE_ENV": "production"
+    }
+  }
+}
+```
+
+### Database Integration
+```json
+{
+  "id": "db-migration",
+  "name": "Run database migrations",
+  "type": "database",
+  "config": {
+    "connection": "${env.DATABASE_URL}",
+    "migrations_path": "migrations/",
+    "rollback_on_failure": true
+  }
+}
 ```
 
 This workflow orchestrator provides enterprise-grade automation capabilities with dependency management, monitoring, and cross-platform execution support.

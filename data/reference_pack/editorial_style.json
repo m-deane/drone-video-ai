@@ -1,0 +1,1344 @@
+{
+  "schema": {
+    "name": "editorial_style",
+    "version": 1,
+    "generated_utc_date": "2026-07-26",
+    "purpose": "Machine-readable house style extracted from the 8-file reference corpus in /Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-video-examples. Every numeric leaf is a measurement object; nothing is a default.",
+    "value_object_contract": {
+      "description": "Every numeric or categorical leaf that asserts a fact is an object with these keys.",
+      "value": "the asserted value (number, string, boolean, or array)",
+      "unit": "unit of measure, or null for dimensionless / categorical",
+      "confidence": "one of: measured | inferred | assumed. 'measured' = produced by a command run against the corpus. 'inferred' = deduced from measurements without direct observation. 'assumed' = neither; carried from a declaration with no supporting observation.",
+      "source": "the exact command class and file(s) the value traces to",
+      "measured_in_session": "true if the authoring agent re-ran the command itself in this session; false if the value is carried forward from an earlier measurement phase and was NOT re-run here"
+    },
+    "toolchain": {
+      "ffprobe": "8.1 at /opt/homebrew/bin/ffprobe",
+      "ffmpeg": "at /opt/homebrew/bin/ffmpeg",
+      "python": "system python3, stdlib only (json, csv, statistics)",
+      "unavailable": "cv2, numpy, scenedetect, opentimelineio — no optical-flow capability in this environment"
+    },
+    "corpus": {
+      "media_files": 8,
+      "sidecar_files": 1,
+      "families": 2,
+      "note": "The corpus splits into two provably independent families (see reference_pack.json relationships). Style parameters are therefore reported PER FAMILY wherever the two disagree, and only unified where both agree."
+    }
+  },
+  "shot_structure": {
+    "shot_count_per_file": {
+      "value": 1,
+      "unit": "shots",
+      "confidence": "measured",
+      "source": "scdet=threshold=0 per-frame scores for all 8 files (data/reference_pack/probe/*.scd.csv, recounted this session): 0 frames score >= 5.0, 0 >= 10.0, 0 >= 30.0 on the scdet 0-100 scale in any file. Per-file maxima only 0.516 / 1.547 / 1.776 / 1.799 / 2.104 / 2.435 / 2.668 / 3.537.",
+      "measured_in_session": true
+    },
+    "hard_cut_count_total_corpus": {
+      "value": 0,
+      "unit": "cuts",
+      "confidence": "measured",
+      "source": "Same recount as shot_count_per_file. This is a positive finding, not a detection failure — see hard_cut_threshold_calibration.",
+      "measured_in_session": true
+    },
+    "hard_cut_threshold_calibration": {
+      "genuine_cut_scores_on_synthetic_control": {
+        "value": [
+          41.939,
+          31.464
+        ],
+        "unit": "scdet score (0-100)",
+        "confidence": "measured",
+        "source": "Synthetic 3-segment positive control built this session in a /tmp scratch dir (testsrc2 2s -> black 2s -> smptebars 2s, concat, yuv420p, 640x360@30) then scdet=threshold=0. The two guaranteed hard cuts scored 41.939 (t=2.0s) and 31.464 (t=4.0s). Scratch dir deleted after measurement; no frames were written.",
+        "measured_in_session": true
+      },
+      "non_cut_ceiling_on_synthetic_control": {
+        "value": 0.901,
+        "unit": "scdet score (0-100)",
+        "confidence": "measured",
+        "source": "Same control run: highest non-cut frame score was 0.901 (t=0.0333s, the scdet warm-up frame). Only 2 of 180 frames scored >= 5.0, and those 2 are the known cuts.",
+        "measured_in_session": true
+      },
+      "separation_margin": {
+        "value": 8.9,
+        "unit": "ratio (lowest genuine control cut 31.464 / highest corpus score 3.537)",
+        "confidence": "measured",
+        "source": "31.464 / 3.537 = 8.895. The loudest frame anywhere in the corpus is 8.9x quieter than the quieter of two known hard cuts, so ANY threshold in [4, 31] yields 0 cuts. No magic constant is required.",
+        "measured_in_session": true
+      },
+      "warm_up_artifact_warning": {
+        "value": "frame index 1 (t=0.033333 s) carries an inflated score because scdet computes |mafd - prev_mafd| and prev_mafd is 0 at the first inter-frame comparison",
+        "unit": null,
+        "confidence": "measured",
+        "source": "In split_001/002/003 the GLOBAL maximum is this artifact (2.668 / 2.435 / 2.104). Excluding frame indices 0-1 their true maxima fall to 0.537 / 0.475 / 0.174. The synthetic control reproduces the artifact (0.901 at t=0.0333). Any consumer thresholding these CSVs must drop index 0-1.",
+        "measured_in_session": true
+      }
+    }
+  },
+  "shot_length_distribution": {
+    "note": "Because shot_count_per_file is 1, shot length is identically equal to file duration. These are durations, presented as the shot-length sample.",
+    "sample_size": {
+      "value": 8,
+      "unit": "shots",
+      "confidence": "measured",
+      "source": "one shot per file across 8 files",
+      "measured_in_session": true
+    },
+    "all_files": {
+      "values_s": {
+        "value": [
+          8.3,
+          14.566667,
+          14.566667,
+          15.0,
+          15.0,
+          15.0,
+          27.1,
+          27.1
+        ],
+        "unit": "s",
+        "confidence": "measured",
+        "source": "ffprobe -show_format -show_streams on all 8 files (this session). format.duration and stream.duration agree to 6 dp on every file; each is independently confirmed by nb_frames/30 and by duration_ts/time_base (e.g. split_003: 127488/15360 = 8.3 exactly; instagram_reel_test: 416256/15360 = 27.1 exactly).",
+        "measured_in_session": true
+      },
+      "min_s": {
+        "value": 8.3,
+        "unit": "s",
+        "confidence": "measured",
+        "source": "split_003_s66.mp4 ffprobe format.duration",
+        "measured_in_session": true
+      },
+      "max_s": {
+        "value": 27.1,
+        "unit": "s",
+        "confidence": "measured",
+        "source": "instagram_reel_test.mp4 and instagram_reel_v34_all_kb_full.mp4 ffprobe format.duration",
+        "measured_in_session": true
+      },
+      "mean_s": {
+        "value": 17.079167,
+        "unit": "s",
+        "confidence": "measured",
+        "source": "sum of the 8 measured durations = 136.633334 s, / 8",
+        "measured_in_session": true
+      },
+      "median_s": {
+        "value": 15.0,
+        "unit": "s",
+        "confidence": "measured",
+        "source": "sorted sample midpoint of (15.0, 15.0) = 15.0",
+        "measured_in_session": true
+      }
+    },
+    "distinct_compositions": {
+      "value": 3,
+      "unit": "edits",
+      "confidence": "measured",
+      "source": "The 8 files are not 8 independent shot-length samples. Two rendition pairs collapse to one composition each (instagram_reel_test + instagram_reel_v34_all_kb_full are frame-locked at 813 frames / 27.100000 s; viral_test_v2 + viral_test_v2_4k are frame-locked at 437 frames / 14.566667 s — frame counts and durations re-confirmed by ffprobe this session and by -count_frames). The 4 splits are 4 segments of one source. So the independent sample is: two vertical edits (27.100000 s, 14.566667 s) and one split family.",
+      "measured_in_session": true
+    },
+    "per_family": {
+      "horizontal_split_family": {
+        "values_s": {
+          "value": [
+            15.0,
+            15.0,
+            8.3,
+            15.0
+          ],
+          "unit": "s",
+          "confidence": "measured",
+          "source": "ffprobe format.duration on split_001_s70 / split_002_s69 / split_003_s66 / split_004_s65, this session",
+          "measured_in_session": true
+        },
+        "mean_s": {
+          "value": 13.325,
+          "unit": "s",
+          "confidence": "measured",
+          "source": "53.3 / 4; the sum 53.300000 also matches manifest.json summary.total_duration 53.3 exactly",
+          "measured_in_session": true
+        },
+        "modal_s": {
+          "value": 15.0,
+          "unit": "s",
+          "confidence": "measured",
+          "source": "3 of 4 clips are exactly 15.000000 s (450 frames each, confirmed by -count_frames this session)",
+          "measured_in_session": true
+        },
+        "cap_mechanism": {
+          "value": 15.0,
+          "unit": "s",
+          "confidence": "inferred",
+          "source": "manifest.json split_params.max_duration is 15.0, and 3 of 4 measured durations are exactly 15.000000 s (not 14.9 or 15.1). Inferred rather than measured because the cap itself is a tool parameter, not an observable; what IS measured is that three durations sit exactly on it.",
+          "measured_in_session": true
+        }
+      },
+      "vertical_social_family": {
+        "values_s": {
+          "value": [
+            27.1,
+            27.1,
+            14.566667,
+            14.566667
+          ],
+          "unit": "s",
+          "confidence": "measured",
+          "source": "ffprobe format.duration on the four vertical files, this session",
+          "measured_in_session": true
+        },
+        "distinct_values_s": {
+          "value": [
+            14.566667,
+            27.1
+          ],
+          "unit": "s",
+          "confidence": "measured",
+          "source": "two frame-locked rendition pairs, so only two distinct edit durations (437 and 813 frames at 30/1)",
+          "measured_in_session": true
+        }
+      }
+    }
+  },
+  "cut_rhythm": {
+    "corpus_is_single_shot": {
+      "value": true,
+      "unit": null,
+      "confidence": "measured",
+      "source": "See shot_structure. No file contains a second shot, therefore THERE IS NO CUT RHYTHM IN THIS CORPUS TO EXTRACT. This is the single most consequential finding for anyone building a generator from this reference pack: the house style is long-take, single-shot, graded — NOT a fast-cut montage.",
+      "measured_in_session": true
+    },
+    "mean_shot_length_equals_duration": {
+      "value": true,
+      "unit": null,
+      "confidence": "measured",
+      "source": "0 cuts / file, so mean shot length = duration / (cuts + 1) = duration for all 8 files.",
+      "measured_in_session": true
+    },
+    "cuts_per_minute": {
+      "value": 0.0,
+      "unit": "cuts/min",
+      "confidence": "measured",
+      "source": "0 cuts over 136.633334 s of aggregate corpus runtime.",
+      "measured_in_session": true
+    },
+    "target_cut_interval_s": null,
+    "target_cuts_per_minute": null,
+    "omission_note": "target_cut_interval_s and target_cuts_per_minute are explicitly null, not defaulted. The corpus supports no value for either. Inventing one (e.g. 'social edits cut every 2 s') would be a fabricated constant. See open_questions.",
+    "hypothetical_assembly_shot_length_s": {
+      "value": 13.325,
+      "unit": "s",
+      "confidence": "inferred",
+      "source": "IF the four split clips were concatenated in manifest order, the assembly would run 53.300000 s with 4 shots -> 13.325 s mean shot length. Marked inferred because no such assembly exists in the corpus; this is arithmetic on measured durations, not an observed edit.",
+      "measured_in_session": true
+    },
+    "soft_transition_search": {
+      "method": {
+        "value": "A dissolve appears as a RUN of consecutive frames well above the file's own median frame-difference; a hard cut appears as a single isolated spike. Longest run of consecutive frames at >= 5x the file's own median scdet score was measured per file.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "per-file scdet CSVs",
+        "measured_in_session": false
+      },
+      "longest_elevated_run_frames": {
+        "value": {
+          "split_001_s70": 2,
+          "split_002_s69": 3,
+          "split_003_s66": 2,
+          "split_004_s65": 4,
+          "viral_test_v2": 5,
+          "viral_test_v2_4k": 3,
+          "instagram_reel_test": 5,
+          "instagram_reel_v34_all_kb_full": 19
+        },
+        "unit": "frames",
+        "confidence": "measured",
+        "source": "Carried forward from the topology measurement phase; NOT re-run in this session. 7 of 8 files show runs of only 2-5 frames, i.e. no internal dissolves. instagram_reel_v34_all_kb_full is the single outlier at 19 frames starting t=0.77 s and is UNRESOLVED — see open_questions.",
+        "measured_in_session": false
+      }
+    },
+    "terminal_transition": {
+      "vertical_social_family": {
+        "type": {
+          "value": "fade to black, truncated (last frame is not black)",
+          "unit": null,
+          "confidence": "measured",
+          "source": "signalstats YAVG per frame, this session; the terminal monotonically-decreasing YAVG run ends at YAVG 34.71 (instagram_reel_test) and 23.68 (viral_test_v2), neither of which is black",
+          "measured_in_session": true
+        },
+        "length_frames": {
+          "value": {
+            "instagram_reel_test": 13,
+            "viral_test_v2": 14
+          },
+          "unit": "frames",
+          "confidence": "measured",
+          "source": "ffmpeg signalstats,metadata=print key=lavfi.signalstats.YAVG on each file this session; longest terminal monotonically-decreasing run = 13 frames for instagram_reel_test and 14 for viral_test_v2",
+          "measured_in_session": true
+        },
+        "length_s": {
+          "value": {
+            "instagram_reel_test": 0.433333,
+            "viral_test_v2": 0.466667
+          },
+          "unit": "s",
+          "confidence": "measured",
+          "source": "13/30 and 14/30",
+          "measured_in_session": true
+        },
+        "start_time_s": {
+          "value": {
+            "instagram_reel_test": 26.633333,
+            "viral_test_v2": 14.066667
+          },
+          "unit": "s",
+          "confidence": "measured",
+          "source": "first frame of the terminal decreasing run, this session (frame index 799 and 422 respectively)",
+          "measured_in_session": true
+        },
+        "luma_ramp": {
+          "value": {
+            "instagram_reel_test": {
+              "from_YAVG": 106.52,
+              "to_YAVG": 34.71,
+              "slope_per_frame": 5.52
+            },
+            "viral_test_v2": {
+              "from_YAVG": 113.4,
+              "to_YAVG": 23.68,
+              "slope_per_frame": 6.41
+            }
+          },
+          "unit": "8-bit luma levels",
+          "confidence": "measured",
+          "source": "signalstats YAVG endpoints of the terminal run, this session",
+          "measured_in_session": true
+        },
+        "applies_to_4k_siblings": {
+          "value": true,
+          "unit": null,
+          "confidence": "inferred",
+          "source": "The 4K files are frame-locked renditions of the 1080p files (identical frame counts and durations, re-confirmed by ffprobe this session), so the fade is in the shared cut. Marked inferred because I measured the fade on the 1080p members only; the topology phase reported matching fade geometry on the 4K members.",
+          "measured_in_session": true
+        }
+      },
+      "horizontal_split_family": {
+        "type": {
+          "value": "none — hard in, hard out",
+          "unit": null,
+          "confidence": "measured",
+          "source": "signalstats YAVG this session: terminal monotonically-decreasing run is 0 frames for split_001_s70 and split_004_s65, and the first frame already sits at normal exposure (split_001 frame-0 YAVG 76.44 against a full-frame file range whose final frame is 77.10; split_004 frame-0 YAVG 71.26, final 68.29). No fade at either end.",
+          "measured_in_session": true
+        }
+      },
+      "interpretation": {
+        "value": "The splits are unfinished hand-off segments for assembly; the verticals are finished deliverables that end on a fade.",
+        "unit": null,
+        "confidence": "inferred",
+        "source": "Inference from the presence/absence of a terminal fade plus the splits' proxy-resolution source. Not directly observable.",
+        "measured_in_session": true
+      }
+    }
+  },
+  "motion_type_vocabulary": {
+    "reconciliation_note": "manifest.json is the ONLY source of motion-type labels. The labels themselves are UNVERIFIABLE IN-SESSION: separating REVEAL from ORBIT_CW from STATIC requires per-pixel motion-vector direction and rotation estimation (optical flow), which needs cv2/numpy — absent from this environment, and no ffprobe/ffmpeg filter exposes flow direction. scdet's MAFD gives motion MAGNITUDE only, which is direction-blind. No label was guessed or back-filled. (Nuance recorded 2026-07-27, per claim C53's verdict and REVIEW.md section 5.1 group G: genuine opacity is narrower than wholesale - the DIRECTION labels REVEAL vs ORBIT_CW are unverifiable here, but the STATIC label is partly testable without cv2: a null-controlled 128-bin row-profile cross-correlation showed split_004 (declared STATIC) drifting ~2.7 px/frame. That single-run result is unreplicated and cannot separate camera pan from subject motion, so it is a caveat, not a finding.)",
+    "terms": {
+      "value": [
+        "REVEAL",
+        "ORBIT_CW",
+        "STATIC"
+      ],
+      "unit": null,
+      "confidence": "measured",
+      "source": "Enumerated from manifest.json clips[].motion_type (read and validated with python3 -m json.tool this session). These are the only three terms the corpus attests. The vocabulary is almost certainly incomplete — ORBIT_CW implies an unattested ORBIT_CCW, and common drone moves (PUSH_IN, PULL_OUT, TOP_DOWN, FLY_THROUGH) are absent because the corpus has only 4 labelled clips.",
+      "measured_in_session": true
+    },
+    "term_count": {
+      "value": 3,
+      "unit": "terms",
+      "confidence": "measured",
+      "source": "manifest.json, 3 distinct values across 4 clips",
+      "measured_in_session": true
+    },
+    "assignments": {
+      "value": {
+        "split_001_s70": "REVEAL",
+        "split_002_s69": "ORBIT_CW",
+        "split_003_s66": "REVEAL",
+        "split_004_s65": "STATIC"
+      },
+      "unit": null,
+      "confidence": "assumed",
+      "source": "manifest.json clips[].motion_type verbatim. Marked ASSUMED, not measured and not inferred: nothing in this environment can confirm or refute any of the four labels. Carried only because the manifest asserts them.",
+      "measured_in_session": true
+    },
+    "motion_energy_declared": {
+      "value": {
+        "split_001_s70": 100.0,
+        "split_002_s69": 96.1,
+        "split_003_s66": 79.9,
+        "split_004_s65": 77.7
+      },
+      "unit": "undocumented scale, apparently 0-100 max-normalised",
+      "confidence": "assumed",
+      "source": "manifest.json clips[].motion_energy verbatim. The generating algorithm is undocumented and no ffprobe/ffmpeg observable reproduces it.",
+      "measured_in_session": true
+    },
+    "motion_energy_rank_corroboration": {
+      "measured_proxy": {
+        "value": {
+          "split_001_s70": 2.7176,
+          "split_002_s69": 2.3106,
+          "split_003_s66": 2.2118,
+          "split_004_s65": 1.713
+        },
+        "unit": "mean scdet MAFD over the active picture area",
+        "confidence": "measured",
+        "source": "ffmpeg -i CLIP -vf 'crop=1280:544:0:88,scdet=threshold=0,metadata=print:key=lavfi.scd.mafd' run on each delivered clip this session. NOTE this is measured on the DELIVERED clips, not on the source proxy, so it needs no external file to reproduce.",
+        "measured_in_session": true
+      },
+      "rank_order_agreement": {
+        "value": true,
+        "unit": null,
+        "confidence": "measured",
+        "source": "Measured MAFD ranks split_001 > split_002 > split_003 > split_004, identical to the manifest's motion_energy ranking. Probability of a chance match on 4 items is 1/24 = 4.17%. So motion_energy does track real motion magnitude monotonically.",
+        "measured_in_session": true
+      },
+      "magnitude_agreement": {
+        "value": false,
+        "unit": null,
+        "confidence": "measured",
+        "source": "Max-normalising the measured MAFD to 100 gives 100.00 / 85.03 / 81.39 / 63.03 versus the manifest's 100.0 / 96.1 / 79.9 / 77.7. Deltas: 0.00, -11.07, +1.49, -14.67. motion_energy is therefore NOT a linear normalisation of mean frame difference; it is a monotone function of motion computed by a different, undocumented (probably flow-based) algorithm. Its absolute values must not be treated as reproducible.",
+        "measured_in_session": true
+      },
+      "method_caveat": {
+        "value": "Do NOT substitute scdet SCORE for MAFD when ranking motion. Score is |mafd - prev_mafd|, an unsteadiness measure, and it ranks these clips differently: mean score gives split_002 (0.0507) > split_001 (0.0400) > split_004 (0.0251) > split_003 (0.0234), which does NOT match motion_energy. Only MAFD reproduces the manifest's rank order.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "Both statistics computed this session — MAFD via the metadata=print run above, score via the stored data/reference_pack/probe/split_*.scd.csv files (frame indices 0-1 excluded to drop the warm-up artifact).",
+        "measured_in_session": true
+      }
+    },
+    "label_tension_flagged": {
+      "value": "split_004_s65 is labelled STATIC yet measures mean MAFD 1.7130, which is 63.0% of the highest-motion clip in the family (split_001 at 2.7176) and gives a per-second MAFD envelope of 1.20-2.77 with no near-zero stretch. That is substantial frame-to-frame change, not a static frame.",
+      "unit": null,
+      "confidence": "measured",
+      "source": "Per-clip mean MAFD and per-second MAFD envelope, both measured this session. CAVEAT stated explicitly rather than resolved: the manifest nowhere defines STATIC, and it may mean 'no dominant directional camera motion' rather than 'no pixel change', in which case a high MAFD is fully compatible with the label. I cannot discriminate — direction needs optical flow. Flagged as a tension to check against the generating tool's source, NOT asserted as an error.",
+      "measured_in_session": true
+    }
+  },
+  "colour_treatment": {
+    "declared_grade": {
+      "name": {
+        "value": "drone_aerial",
+        "unit": null,
+        "confidence": "assumed",
+        "source": "manifest.json split_params.color and clips[].post_processing.color, all four clips. No LUT, curve, or definition for this named grade exists in the corpus, so the name is carried, not verified.",
+        "measured_in_session": true
+      },
+      "intensity": {
+        "value": 0.65,
+        "unit": "undocumented 0-1 scale",
+        "confidence": "assumed",
+        "source": "manifest.json split_params.color_intensity. Undocumented scale; no observable maps to it.",
+        "measured_in_session": true
+      },
+      "applies_to": {
+        "value": [
+          "split_001_s70.mp4",
+          "split_002_s69.mp4",
+          "split_003_s66.mp4",
+          "split_004_s65.mp4"
+        ],
+        "unit": null,
+        "confidence": "measured",
+        "source": "manifest.json documents only the four splits; it says nothing at all about the four vertical files.",
+        "measured_in_session": true
+      },
+      "verification_status": {
+        "value": "PARTIALLY FALSIFIED — a luma-only change is measurable; chroma is untouched",
+        "unit": null,
+        "confidence": "measured",
+        "source": "Carried forward from the reconciliation phase (NOT re-run this session): against a control built by 8-bit-reducing the located source proxy over crop=1280:544:0:88, split_004's active region shows YAVG -8.26 (-8.25%) and YMAX -16.77 (-6.58%) while UAVG moves +0.11%, VAVG -0.23%, SATAVG +2.2% and HUEAVG +0.03% — all at or near noise. A true bt2020->bt709 conversion control would have moved SATAVG -36.6% and HUEAVG -14.66. So a parameter named 'color' at intensity 0.65 produced no measurable colour change, only a highlight-weighted luma compression.",
+        "measured_in_session": false
+      }
+    },
+    "measured_tonal_signature": {
+      "horizontal_split_family_active_area": {
+        "measurement_window": {
+          "value": "crop=1280:544:0:88 — active picture only, letterbox bars excluded",
+          "unit": null,
+          "confidence": "measured",
+          "source": "cropdetect result, this session",
+          "measured_in_session": true
+        },
+        "YAVG_mean": {
+          "value": {
+            "split_001_s70": 96.29,
+            "split_002_s69": 88.39,
+            "split_003_s66": 91.91,
+            "split_004_s65": 91.85
+          },
+          "unit": "8-bit luma levels",
+          "confidence": "measured",
+          "source": "ffmpeg -vf 'crop=1280:544:0:88,signalstats,metadata=print:key=lavfi.signalstats.YAVG' per clip, mean over all frames (450/450/249/450), this session",
+          "measured_in_session": true
+        },
+        "YMIN_floor": {
+          "value": {
+            "split_001_s70": 31,
+            "split_002_s69": 41,
+            "split_003_s66": 38,
+            "split_004_s65": 36
+          },
+          "unit": "8-bit luma levels",
+          "confidence": "measured",
+          "source": "minimum of per-frame lavfi.signalstats.YMIN over the active area, this session. BLACKS ARE LIFTED: the darkest pixel anywhere in the picture area of any split clip is level 31, well above legal black (16). There is no true black in the image.",
+          "measured_in_session": true
+        },
+        "SATAVG_mean": {
+          "value": {
+            "split_001_s70": 8.7,
+            "split_002_s69": 13.69,
+            "split_003_s66": 14.43,
+            "split_004_s65": 15.81
+          },
+          "unit": "signalstats saturation units",
+          "confidence": "measured",
+          "source": "same signalstats runs, this session",
+          "measured_in_session": true
+        },
+        "exposure_stability": {
+          "value": {
+            "split_001_s70": [
+              92.24,
+              98.61
+            ],
+            "split_002_s69": [
+              84.52,
+              95.94
+            ],
+            "split_003_s66": [
+              84.37,
+              101.26
+            ],
+            "split_004_s65": [
+              84.77,
+              95.9
+            ]
+          },
+          "unit": "8-bit luma levels, [min, max] of per-frame YAVG",
+          "confidence": "measured",
+          "source": "same signalstats runs, this session. split_001's whole 15 s take spans only 6.4 luma levels — exposure is held extremely flat across a shot.",
+          "measured_in_session": true
+        }
+      },
+      "vertical_social_family_full_frame": {
+        "measurement_window": {
+          "value": "full frame — cropdetect returns crop=1080:1920:0:0, no bars to exclude",
+          "unit": null,
+          "confidence": "measured",
+          "source": "cropdetect=limit=24:round=2:reset=0 this session: 811 of 813 detections on instagram_reel_test and 435 of 437 on viral_test_v2, all crop=1080:1920:0:0",
+          "measured_in_session": true
+        },
+        "YAVG_mean": {
+          "value": {
+            "instagram_reel_test": 117.34,
+            "viral_test_v2": 121.89
+          },
+          "unit": "8-bit luma levels",
+          "confidence": "measured",
+          "source": "ffmpeg signalstats YAVG over all frames, this session. Only the two 1080p members were measured; the 4K members were not (cost), so no value is asserted for them.",
+          "measured_in_session": true
+        },
+        "SATAVG_mean": {
+          "value": {
+            "instagram_reel_test": 13.3,
+            "viral_test_v2": 15.5
+          },
+          "unit": "signalstats saturation units",
+          "confidence": "measured",
+          "source": "same runs, this session",
+          "measured_in_session": true
+        },
+        "SATAVG_max": {
+          "value": {
+            "instagram_reel_test": 25.54,
+            "viral_test_v2": 23.32
+          },
+          "unit": "signalstats saturation units",
+          "confidence": "measured",
+          "source": "same runs, this session",
+          "measured_in_session": true
+        },
+        "YMIN_floor": {
+          "value": {
+            "instagram_reel_test": 30,
+            "viral_test_v2": 14
+          },
+          "unit": "8-bit luma levels",
+          "confidence": "measured",
+          "source": "minimum of per-frame YMIN, this session. Blacks are lifted here too, though viral_test_v2 reaches 14 — and that value occurs inside its terminal fade, not in the body of the shot.",
+          "measured_in_session": true
+        }
+      },
+      "family_difference": {
+        "value": "The verticals are materially brighter than the splits' active picture: YAVG mean 117.34-121.89 versus 88.39-96.29, a gap of roughly 25-33 luma levels. Saturation overlaps (verticals 13.30-15.50, splits 8.70-15.81) and does not separate the families.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "signalstats runs above, this session",
+        "measured_in_session": true
+      },
+      "family_difference_caveat": {
+        "value": "This luma gap must NOT be read as a grading difference alone. The two families provably share no source footage (see reference_pack.json), so different CONTENT is an equally live explanation. Any generator that hard-codes 'verticals are brighter' from this corpus is over-fitting to two samples of unrelated material.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "Provenance separation is measured (topology phase); the confound is a logical consequence.",
+        "measured_in_session": false
+      }
+    },
+    "colour_tagging": {
+      "horizontal_split_family": {
+        "value": {
+          "color_space": "bt709",
+          "color_range": "tv",
+          "color_primaries": null,
+          "color_transfer": null,
+          "chroma_location": "left",
+          "pix_fmt": "yuv420p",
+          "bit_depth": 8
+        },
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe -show_streams on all four splits, this session. color_space and color_range ARE tagged; color_primaries and color_transfer are ABSENT from the container, so primaries and transfer are unspecified rather than explicitly BT.709.",
+        "measured_in_session": true
+      },
+      "vertical_social_family": {
+        "value": {
+          "color_space": null,
+          "color_range": null,
+          "color_primaries": null,
+          "color_transfer": null,
+          "pix_fmt": "yuv420p",
+          "bit_depth": 8
+        },
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe -show_streams on all four verticals, this session. NO colour keys of any kind are emitted for any of the four. Any BT.709 assumption for these files is an inference, not a measurement.",
+        "measured_in_session": true
+      },
+      "source_proxy_for_the_splits": {
+        "value": {
+          "color_space": "bt2020nc",
+          "color_primaries": "bt2020",
+          "color_transfer": "arib-std-b67",
+          "color_range": "tv",
+          "pix_fmt": "yuv420p10le",
+          "profile": "High 10",
+          "bit_depth": 10
+        },
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe -show_streams on /Users/mac/Documents/photography-WORKFLOW-local/_archive/_p-ai-drone-video/.drone_clips/.advanced/DJI_0355_proxy.mp4, this session. arib-std-b67 is HLG.",
+        "measured_in_session": true
+      },
+      "undocumented_conversion": {
+        "value": "The split render performed a 10-bit HLG/BT.2020 -> 8-bit BT.709-tagged SDR conversion that manifest.json records nowhere: bit depth halved (yuv420p10le -> yuv420p, High 10 -> High) and the matrix tag changed bt2020nc -> bt709, while the reconciliation phase measured that chroma pixel values were carried across essentially unconverted.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "Source and clip ffprobe both re-run this session; the chroma-unconverted finding is carried from the reconciliation phase and was not re-run.",
+        "measured_in_session": true
+      },
+      "unresolved": {
+        "value": "Whether the bt709 retag without chroma conversion is a colour-management defect or the correct handling of a spurious source tag cannot be settled. The source's own tagging is internally weak — it declares color_space bt2020nc and color_primaries bt2020 and transfer arib-std-b67 but carries no mastering-display metadata to corroborate a wide-gamut origin, and the proxy is itself a libx264 transcode (encoder tag Lavc62.11.100), not a camera file. Both branches remain live. (CORRECTED 2026-07-27 by adversarial verification, claim C58 killed 3/3 unanimous: the \"internally weak\"/\"may be spurious\" characterisation is withdrawn. The proxy's HLG signalling set is COMPLETE and mutually consistent - color_space bt2020nc + color_primaries bt2020 + color_transfer arib-std-b67 + color_range tv over 10-bit yuv420p10le; three agreeing fields over a 10-bit stream is what a deliberate HLG encode looks like, whereas a spurious tag is normally a lone matrix field over 8-bit. Mastering-display metadata is an HDR10/PQ container concept and its absence on an HLG stream is normal, not corroborating weakness. The splits' bt709 retag carries primaries/transfer ABSENT - an incomplete set - so relative tagging quality favours the proxy, and the retag WITHOUT chroma conversion is correspondingly MORE plausibly a colour-management defect. The only branch still open is whether the camera original behind this transcode was itself HLG/BT.2020 (FURTHER RESOLVED 2026-07-27, this session, same day: the camera original was located at DJI_20241029174803_0355_D.MP4, same .advanced/ directory as the proxy, and pixel-matched against it at 7 of 9 sampled timestamps spanning the full duration, PSNR y 29-40 dB vs a calibrated same-pair floor of 15.5-19.6 dB - CONFIRMED, high confidence. It declares the identical bt2020nc/bt2020/arib-std-b67/tv HLG tag set as the proxy, so yes, the camera original was itself HLG/BT.2020-tagged. What remains genuinely open, narrower still, is whether the drone_aerial grade was applied as specified - a separate question this measurement does not touch. See REVIEW.md section 2.1a and section 5.1 group D.)",
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe on the proxy this session confirms the tag set and the libx264 encoder tag; the conclusion that this leaves the question open is a logical statement, not a measurement.",
+        "measured_in_session": true
+      }
+    }
+  },
+  "letterbox": {
+    "horizontal_split_family": {
+      "applied": {
+        "value": true,
+        "unit": null,
+        "confidence": "measured",
+        "source": "cropdetect on all four splits this session",
+        "measured_in_session": true
+      },
+      "declared_ratio_label": {
+        "value": "2.35",
+        "unit": null,
+        "confidence": "assumed",
+        "source": "manifest.json split_params.letterbox and clips[].post_processing.letterbox, verbatim string",
+        "measured_in_session": true
+      },
+      "measured_ratio": {
+        "value": 2.352941,
+        "unit": "width:height of the active picture",
+        "confidence": "measured",
+        "source": "cropdetect=limit=24:round=2:reset=0 over full duration on split_003_s66.mp4 returns a single stable value, crop=1280:544:0:88 (247 of 249 frames), and 1280/544 = 2.352941. The same single value is returned for split_001_s70 (448/450), split_002_s69 (448/450) and split_004_s65 (448/450). All four runs performed this session.",
+        "measured_in_session": true
+      },
+      "active_picture_px": {
+        "value": [
+          1280,
+          544
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "cropdetect crop=1280:544:0:88 on all four splits, this session",
+        "measured_in_session": true
+      },
+      "bar_height_px": {
+        "value": 88,
+        "unit": "px per bar (top and bottom)",
+        "confidence": "measured",
+        "source": "cropdetect y-offset 88, and 88 + 544 + 88 = 720 exactly, matching the coded height from ffprobe",
+        "measured_in_session": true
+      },
+      "coded_frame_px": {
+        "value": [
+          1280,
+          720
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "ffprobe width/height and coded_width/coded_height on all four splits, this session; no sample_aspect_ratio and no display_aspect_ratio fields are emitted, so pixels are square by default and the coded aspect is a genuine 16:9",
+        "measured_in_session": true
+      },
+      "label_vs_measurement_delta": {
+        "value": 0.002941,
+        "unit": "aspect ratio units (measured 2.352941 minus label 2.35)",
+        "confidence": "measured",
+        "source": "+0.125%. An exact 2.35 would require an active height of 544.681 px; 544 is the nearest even value (546 would give 2.34432, further off). So '2.35' is a correct 2-decimal label for the real geometry, not an error.",
+        "measured_in_session": true
+      },
+      "apparent_contradiction_resolved": {
+        "value": "manifest.json declaring letterbox '2.35' while ffprobe reports a 16:9 coded frame is NOT a contradiction. The 2.35 framing is baked in as black bars inside a genuinely 16:9 raster. Both statements are true simultaneously.",
+        "unit": null,
+        "confidence": "measured",
+        "source": "cropdetect (this session) plus ffprobe geometry (this session)",
+        "measured_in_session": true
+      },
+      "mechanism": {
+        "value": "vertical CENTRE-CROP at source row 88 then pad back to 1280x720 — NOT an anamorphic squeeze",
+        "unit": null,
+        "confidence": "measured",
+        "source": "Carried forward from the topology and reconciliation phases; NOT re-run this session. Two independent discriminators agreed: PSNR against split_004 over 10 s is 28.97 dB for the crop-then-pad hypothesis versus 22.86 dB for the scale-then-pad hypothesis (6.1 dB apart), and split_001's luma correlation at its declared source offset is +0.95975 against the proxy centre-crop but only +0.30494 against the proxy full frame. An SSIM vertical-offset sweep peaked sharply at y=88 (0.9707 versus 0.6806/0.7318/0.7318/0.6830 at y=84/86/90/92).",
+        "measured_in_session": false
+      },
+      "bar_luma": {
+        "value": 16,
+        "unit": "8-bit luma level",
+        "confidence": "measured",
+        "source": "Carried from the reconciliation phase; NOT re-run this session. Per-frame signalstats on the bar rows gave YMIN=YMAX=16 (limited-range video black, matching color_range=tv) with worst-case compression noise YMIN 13 / YMAX 21 in split_001's bottom bar. CAVEAT: cropdetect thresholds at luma 24, so it proves the bars are below that level, not that they are mathematically pure or uniformly black.",
+        "measured_in_session": false
+      },
+      "content_cost": {
+        "value": 24.4,
+        "unit": "percent of source rows discarded",
+        "confidence": "measured",
+        "source": "176 of 720 rows (88 top + 88 bottom) are replaced by bars; 176/720 = 24.44%. Note manifest.json split_params.resolution is 'source' and is true of the raster (1280x720 in, 1280x720 out) while concealing this content loss.",
+        "measured_in_session": true
+      }
+    },
+    "vertical_social_family": {
+      "applied": {
+        "value": false,
+        "unit": null,
+        "confidence": "measured",
+        "source": "cropdetect=limit=24:round=2:reset=0 this session returns the full frame with no bars on every vertical file: crop=1080:1920:0:0 on instagram_reel_test (811 detections) and viral_test_v2 (435), and crop=2160:3840:0:0 on instagram_reel_v34_all_kb_full (148) and viral_test_v2_4k (148, first 5 s sampled).",
+        "measured_in_session": true
+      },
+      "pillarbox_applied": {
+        "value": false,
+        "unit": null,
+        "confidence": "measured",
+        "source": "Same cropdetect runs — no horizontal bars either.",
+        "measured_in_session": true
+      }
+    }
+  },
+  "speed_ramp_policy": {
+    "declared": {
+      "value": true,
+      "unit": null,
+      "confidence": "assumed",
+      "source": "manifest.json split_params.auto_speed and clips[].post_processing.auto_speed are both boolean true on all four splits. Carried as a declaration only.",
+      "measured_in_session": true
+    },
+    "measured_effect": {
+      "value": "NO-OP — no speed change of any kind was applied to any clip",
+      "unit": null,
+      "confidence": "measured",
+      "source": "Three independent lines, two re-run this session. (1) Net time scaling: measured duration equals manifest end_time minus start_time exactly on 3 of 4 clips (15.000000 s each), ratio 1.000000 — ffprobe this session. (2) No frame-duplicated slow motion: ffmpeg -vf mpdecimate this session drops 0 of 450 / 0 of 450 / 0 of 249 / 0 of 450 frames on split_001/002/003/004 and 0 of 813 on instagram_reel_test; viral_test_v2 drops 2 of 437. (3) DECISIVE, carried from the reconciliation phase and not re-run: clip frame N maps to source frame offset+N for all 1,599 split frames, with SSIM flat across every clip (split_004 quintile means 0.9708/0.9734/0.9734/0.9705/0.9652; split_001 0.9393/0.9489/0.9601/0.9609/0.9594; split_002 0.9631/0.9629/0.9652/0.9613/0.9500; split_003 0.9630/0.9676/0.9700/0.9715/0.9673). A speed ramp resamples time and would make SSIM collapse or drift progressively; it does neither.",
+      "measured_in_session": true
+    },
+    "method_warning": {
+      "value": "CFR frame timing alone proves nothing about speed. Every file in this corpus is strictly CFR 30/1 (r_frame_rate == avg_frame_rate == 30/1, duration == nb_frames/30 exactly, confirmed by ffprobe this session on all 8), but re-encoding normalises PTS regardless of any speed change applied upstream. Only the 1:1 pixel correspondence turns 'no ramp' into a positive finding rather than an absence of evidence.",
+      "unit": null,
+      "confidence": "measured",
+      "source": "ffprobe this session for the CFR facts; the epistemic point is a logical statement about what the measurement can and cannot show.",
+      "measured_in_session": true
+    },
+    "recommended_policy": {
+      "value": "no speed ramping",
+      "unit": null,
+      "confidence": "inferred",
+      "source": "Inferred from the measured no-op above plus the absence of any duplicated or dropped frames anywhere in the corpus. The corpus contains zero positive evidence of speed manipulation in any of the 8 files. Marked inferred, not measured: 'the house style is not to ramp' is a generalisation from 8 files, not an observation.",
+      "measured_in_session": true
+    },
+    "split_003_frame_shortfall_is_not_a_retime": {
+      "value": "split_003_s66's 249 frames / 8.300000 s against a declared 8.33 s is a 1-frame extraction-boundary artifact, not a 0.36% speed change.",
+      "unit": null,
+      "confidence": "measured",
+      "source": "ffprobe this session: nb_frames 249, -count_frames 249, duration_ts 127488 / time_base 15360 = 8.3 exactly (so not a rounding of 8.33), r_frame_rate == avg_frame_rate == 30/1. Mechanism established in the reconciliation phase: manifest stores start_time rounded to 2 dp as 16.67, and 25.0 - 16.67 = 8.33, then 8.33 x 30 = 249.9 -> floor() = 249. The document's own rounding caused the frame loss.",
+      "measured_in_session": true
+    }
+  },
+  "motion_dynamics": {
+    "note": "Reported because it bears on whether a generator should ramp or vary pacing WITHIN a shot. Included with an explicit correction to an earlier reading.",
+    "per_second_MAFD_envelope": {
+      "unit": "mean scdet MAFD per 1-second window",
+      "confidence": "measured",
+      "source": "ffmpeg -vf '[crop for splits],scdet=threshold=0,metadata=print:key=lavfi.scd.mafd' per file this session, frame index 0 dropped, then averaged in 30-frame windows.",
+      "measured_in_session": true,
+      "range_ratio_max_over_min": {
+        "instagram_reel_test": 5.0,
+        "viral_test_v2": 5.5,
+        "split_001_s70": 2.1,
+        "split_004_s65": 2.3
+      },
+      "first_3s_vs_last_3s_mean": {
+        "instagram_reel_test": [
+          1.632,
+          1.074
+        ],
+        "viral_test_v2": [
+          1.176,
+          1.302
+        ],
+        "split_001_s70": [
+          3.368,
+          2.994
+        ],
+        "split_004_s65": [
+          1.709,
+          2.404
+        ]
+      }
+    },
+    "per_second_SCORE_envelope": {
+      "unit": "mean scdet score (|delta MAFD|) per 1-second window",
+      "confidence": "measured",
+      "source": "Computed this session from the stored data/reference_pack/probe/*.scd.csv files, frame index 0 dropped, 30-frame windows.",
+      "measured_in_session": true,
+      "range_ratio_max_over_min": {
+        "instagram_reel_test": 29.3,
+        "instagram_reel_v34_all_kb_full": 59.9,
+        "viral_test_v2": 12.4,
+        "split_001_s70": 7.8,
+        "split_004_s65": 6.0
+      },
+      "first_3s_vs_last_3s_mean": {
+        "instagram_reel_test": [
+          0.318,
+          0.063
+        ],
+        "instagram_reel_v34_all_kb_full": [
+          0.909,
+          0.058
+        ],
+        "viral_test_v2": [
+          0.39,
+          0.089
+        ],
+        "split_001_s70": [
+          0.065,
+          0.032
+        ],
+        "split_004_s65": [
+          0.048,
+          0.028
+        ]
+      }
+    },
+    "correction_to_earlier_reading": {
+      "value": "An earlier phase reported the verticals as 'strongly FRONT-LOADED and monotonically decaying' with range ratios of 33.3x / 60.7x / 13.1x, and the splits as 'FLAT'. My own measurements this session show that conclusion is METRIC-DEPENDENT and does not survive on the motion-magnitude metric. On scdet SCORE (an unsteadiness measure, |delta MAFD|) I reproduce large ratios (29.3x / 59.9x / 12.4x) and a strong first-3s-over-last-3s decline (NOTE 2026-07-27: three OTHER independent reproductions of this same nominal quantity exist elsewhere in this pack - REVIEW.md's C56 kill record logs 33.29/60.66/13.14/6.25, 59.4/84.0/11.8/9.0, and 1.1x/2.6x/9.7x/2.8x from three separate adversarial skeptics. None of the four figure-sets match exactly, which is the finding, not an error: this is the same measurement-surface sensitivity documented for MAFD elsewhere in this pack (cropped vs full-frame, windowing choice, binning) - no single number here should be treated as THE measured ratio, only as one reproduction of a metric-dependent, ultimately-withdrawn effect.) — consistent with the earlier reading. But on MAFD itself (actual frame-to-frame difference) the ratios collapse to 5.0x and 5.5x, instagram_reel_test declines only mildly (1.632 -> 1.074) and viral_test_v2 does not decline at all (1.176 -> 1.302, i.e. slightly BACK-loaded). Separately, the splits show the same directional pattern on the score metric (7.8x and 6.0x, first-3s above last-3s), so the family contrast is one of degree, not kind. CONCLUSION: 'front-loaded motion' is NOT a supportable house-style parameter and is deliberately omitted from this style document. See open_questions.",
+      "unit": null,
+      "confidence": "measured",
+      "source": "Both metrics computed this session on the same files, as tabulated above.",
+      "measured_in_session": true
+    },
+    "front_loaded_motion_parameter": null
+  },
+  "audio": {
+    "audio_stream_count": {
+      "value": 0,
+      "unit": "streams",
+      "confidence": "measured",
+      "source": "ffprobe -show_format -show_streams on all 8 files this session: every file reports format.nb_streams = 1 with the sole stream codec_type = video, and 0 audio streams. The located source proxy is likewise nb_streams = 1.",
+      "measured_in_session": true
+    },
+    "implication_for_edit_grammar": {
+      "value": "There is no audio track to which cuts could have been timed. This is consistent with the measured absence of any cutting at all, and it means any music or sound design is added downstream on every delivery surface.",
+      "unit": null,
+      "confidence": "inferred",
+      "source": "Logical consequence of the measured absence of audio streams. Whether an audio bed was INTENDED is a workflow inference, not a measurement.",
+      "measured_in_session": true
+    }
+  },
+  "delivery_surfaces": [
+    {
+      "id": "social_vertical_1080",
+      "files": {
+        "value": [
+          "instagram_reel_test.mp4",
+          "viral_test_v2.mp4"
+        ],
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe geometry this session",
+        "measured_in_session": true
+      },
+      "aspect": {
+        "value": "9:16",
+        "unit": null,
+        "confidence": "measured",
+        "source": "1080x1920 reduces exactly to 9:16; ffprobe emits no sample_aspect_ratio and no display_aspect_ratio for either file, so square pixels are implied and the coded aspect is the display aspect",
+        "measured_in_session": true
+      },
+      "resolution_px": {
+        "value": [
+          1080,
+          1920
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "ffprobe width/height and coded_width/coded_height, this session",
+        "measured_in_session": true
+      },
+      "fps": {
+        "value": "30/1",
+        "unit": "fps",
+        "confidence": "measured",
+        "source": "ffprobe r_frame_rate == avg_frame_rate == 30/1 on both, this session",
+        "measured_in_session": true
+      },
+      "cfr": {
+        "value": true,
+        "unit": null,
+        "confidence": "measured",
+        "source": "r_frame_rate == avg_frame_rate; nb_frames/30 equals format.duration exactly (813/30 = 27.100000, 437/30 = 14.566667); -count_frames returns 813 and 437 matching nb_frames. All this session.",
+        "measured_in_session": true
+      },
+      "observed_durations_s": {
+        "value": [
+          14.566667,
+          27.1
+        ],
+        "unit": "s",
+        "confidence": "measured",
+        "source": "ffprobe format.duration, this session. Reported as OBSERVED values, not as a target range — a 2-sample corpus does not establish a target.",
+        "measured_in_session": true
+      },
+      "video_bitrate_bps": {
+        "value": {
+          "instagram_reel_test.mp4": 14096352,
+          "viral_test_v2.mp4": 13435909
+        },
+        "unit": "bit/s",
+        "confidence": "measured",
+        "source": "ffprobe stream.bit_rate, this session. Container-level format.bit_rate is marginally higher (14099380 and 13439214).",
+        "measured_in_session": true
+      },
+      "codec": {
+        "value": "h264 High, level 4.1 (level field 41), yuv420p, has_b_frames 2, encoder tag Lavc61.19.100 libx264, muxer Lavf61.7.100, major_brand isom",
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe -show_streams and -show_format, this session",
+        "measured_in_session": true
+      },
+      "letterbox": {
+        "value": "none — full frame",
+        "unit": null,
+        "confidence": "measured",
+        "source": "cropdetect crop=1080:1920:0:0, this session",
+        "measured_in_session": true
+      },
+      "audio": {
+        "value": "none",
+        "unit": null,
+        "confidence": "measured",
+        "source": "0 audio streams, this session",
+        "measured_in_session": true
+      },
+      "role": {
+        "value": "upload target for short-form vertical social (Reels / TikTok / Shorts)",
+        "unit": null,
+        "confidence": "inferred",
+        "source": "Inferred from the 9:16 geometry, 1080p resolution, 13-14 Mbps rate and sub-30-second durations. No file in the corpus states its destination platform.",
+        "measured_in_session": true
+      }
+    },
+    {
+      "id": "mastering_vertical_2160",
+      "files": {
+        "value": [
+          "instagram_reel_v34_all_kb_full.mp4",
+          "viral_test_v2_4k.mp4"
+        ],
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe geometry this session",
+        "measured_in_session": true
+      },
+      "aspect": {
+        "value": "9:16",
+        "unit": null,
+        "confidence": "measured",
+        "source": "2160x3840 reduces exactly to 9:16; no SAR/DAR tags emitted",
+        "measured_in_session": true
+      },
+      "resolution_px": {
+        "value": [
+          2160,
+          3840
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "ffprobe width/height, this session. NOTE the orientation: '4k' refers to 3840 on the LONG (vertical) edge; the frame is only 2160 px wide.",
+        "measured_in_session": true
+      },
+      "fps": {
+        "value": "30/1",
+        "unit": "fps",
+        "confidence": "measured",
+        "source": "ffprobe r_frame_rate == avg_frame_rate == 30/1, this session",
+        "measured_in_session": true
+      },
+      "cfr": {
+        "value": true,
+        "unit": null,
+        "confidence": "measured",
+        "source": "813/30 = 27.100000 and 437/30 = 14.566667 exactly; duration_ts 416256 and 223744 over time_base 1/15360 give the same values",
+        "measured_in_session": true
+      },
+      "observed_durations_s": {
+        "value": [
+          14.566667,
+          27.1
+        ],
+        "unit": "s",
+        "confidence": "measured",
+        "source": "ffprobe format.duration, this session — identical to the 1080p siblings, as expected of frame-locked renditions",
+        "measured_in_session": true
+      },
+      "video_bitrate_bps": {
+        "value": {
+          "instagram_reel_v34_all_kb_full.mp4": 73773819,
+          "viral_test_v2_4k.mp4": 75890986
+        },
+        "unit": "bit/s",
+        "confidence": "measured",
+        "source": "ffprobe stream.bit_rate, this session (container format.bit_rate 73776868 and 75894983)",
+        "measured_in_session": true
+      },
+      "codec": {
+        "value": "h264 High, level 5.1 (level field 51), yuv420p, has_b_frames 2, encoder tag Lavc61.19.100 libx264, muxer Lavf61.7.100",
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe, this session. Level rises 4.1 -> 5.1 as the resolution requires.",
+        "measured_in_session": true
+      },
+      "letterbox": {
+        "value": "none — full frame",
+        "unit": null,
+        "confidence": "measured",
+        "source": "cropdetect crop=2160:3840:0:0 (148 detections each over the first 5 s), this session",
+        "measured_in_session": true
+      },
+      "audio": {
+        "value": "none",
+        "unit": null,
+        "confidence": "measured",
+        "source": "0 audio streams, this session",
+        "measured_in_session": true
+      },
+      "role": {
+        "value": "mastering / archival rendition, not an upload target",
+        "unit": null,
+        "confidence": "inferred",
+        "source": "Inferred from the 73.8-75.9 Mbps rate, which is far above any consumer social upload spec, combined with being a frame-locked high-resolution sibling of a 1080p file. Not stated anywhere in the corpus.",
+        "measured_in_session": true
+      }
+    },
+    {
+      "id": "horizontal_letterboxed_proxy",
+      "files": {
+        "value": [
+          "split_001_s70.mp4",
+          "split_002_s69.mp4",
+          "split_003_s66.mp4",
+          "split_004_s65.mp4"
+        ],
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe geometry this session",
+        "measured_in_session": true
+      },
+      "coded_aspect": {
+        "value": "16:9",
+        "unit": null,
+        "confidence": "measured",
+        "source": "1280x720 reduces exactly to 16:9; coded_width/coded_height identical to width/height; no SAR/DAR tags emitted. This session.",
+        "measured_in_session": true
+      },
+      "active_picture_aspect": {
+        "value": 2.352941,
+        "unit": "width:height",
+        "confidence": "measured",
+        "source": "cropdetect crop=1280:544:0:88 on all four clips this session; 1280/544 = 2.352941",
+        "measured_in_session": true
+      },
+      "resolution_px": {
+        "value": [
+          1280,
+          720
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "ffprobe width/height, this session",
+        "measured_in_session": true
+      },
+      "active_picture_px": {
+        "value": [
+          1280,
+          544
+        ],
+        "unit": "px",
+        "confidence": "measured",
+        "source": "cropdetect, this session",
+        "measured_in_session": true
+      },
+      "fps": {
+        "value": "30/1",
+        "unit": "fps",
+        "confidence": "measured",
+        "source": "ffprobe r_frame_rate == avg_frame_rate == 30/1 on all four, this session",
+        "measured_in_session": true
+      },
+      "cfr": {
+        "value": true,
+        "unit": null,
+        "confidence": "measured",
+        "source": "450/30 = 15.000000 and 249/30 = 8.300000 exactly; duration_ts 230400 and 127488 over time_base 1/15360 give the same; -count_frames returns 450/450/249/450 matching nb_frames. This session.",
+        "measured_in_session": true
+      },
+      "observed_durations_s": {
+        "value": [
+          8.3,
+          15.0,
+          15.0,
+          15.0
+        ],
+        "unit": "s",
+        "confidence": "measured",
+        "source": "ffprobe format.duration, this session",
+        "measured_in_session": true
+      },
+      "video_bitrate_bps": {
+        "value": {
+          "split_001_s70.mp4": 15013683,
+          "split_002_s69.mp4": 15006342,
+          "split_003_s66.mp4": 15025257,
+          "split_004_s65.mp4": 15007948
+        },
+        "unit": "bit/s",
+        "confidence": "measured",
+        "source": "ffprobe stream.bit_rate, this session",
+        "measured_in_session": true
+      },
+      "bitrate_spread": {
+        "value": 0.126,
+        "unit": "percent across the four clips",
+        "confidence": "measured",
+        "source": "(15025257 - 15006342) / 15006342 = 0.126%. A spread this tight indicates a fixed ~15 Mbps encoder target, which is consistent with manifest.json split_params.quality 'high' — although the label-to-bitrate mapping itself is not verifiable from the artifacts.",
+        "measured_in_session": true
+      },
+      "bitrate_exceeds_source": {
+        "value": 28.6,
+        "unit": "percent above the source proxy's 11678856 bps",
+        "confidence": "measured",
+        "source": "15006342 / 11678856 = 1.2849. ffprobe on both the clips and the located proxy, this session. Re-encoding above the source rate cannot recover information; it only enlarges the files.",
+        "measured_in_session": true
+      },
+      "codec": {
+        "value": "h264 High, level 3.1 (level field 31), yuv420p, has_b_frames 0, encoder tag Lavc61.19.100 h264_videotoolbox (Apple hardware), muxer Lavf61.7.100",
+        "unit": null,
+        "confidence": "measured",
+        "source": "ffprobe, this session. The encoder differs from the verticals' libx264 and from the source proxy's libx264 — this is one of the signals separating the two families.",
+        "measured_in_session": true
+      },
+      "audio": {
+        "value": "none",
+        "unit": null,
+        "confidence": "measured",
+        "source": "0 audio streams, this session",
+        "measured_in_session": true
+      },
+      "role": {
+        "value": "review / edit-assembly intermediate at proxy resolution, not a finished horizontal master",
+        "unit": null,
+        "confidence": "inferred",
+        "source": "Inferred from three measured facts: manifest.json split_params.resolution is 'source' and the source is a 720p proxy; the clips carry no terminal fade (measured 0-frame terminal decreasing run); and their 15 Mbps at 720p is the highest per-pixel rate in the corpus, consistent with an intermediate intended for further work.",
+        "measured_in_session": true
+      }
+    }
+  ],
+  "corpus_wide_invariants": {
+    "note": "Parameters where all 8 files agree. These are the only style values a generator can take from this corpus without family-conditioning.",
+    "frame_rate": {
+      "value": "30/1",
+      "unit": "fps",
+      "confidence": "measured",
+      "source": "ffprobe r_frame_rate == avg_frame_rate == 30/1 on all 8 files, this session",
+      "measured_in_session": true
+    },
+    "constant_frame_rate": {
+      "value": true,
+      "unit": null,
+      "confidence": "measured",
+      "source": "All 8: duration == nb_frames/30 exactly, and duration_ts/time_base agrees. This session.",
+      "measured_in_session": true
+    },
+    "container": {
+      "value": "mov,mp4,m4a,3gp,3g2,mj2 (MP4/QuickTime, major_brand isom, muxer Lavf61.7.100)",
+      "unit": null,
+      "confidence": "measured",
+      "source": "ffprobe -show_format on all 8, this session",
+      "measured_in_session": true
+    },
+    "codec": {
+      "value": "h264, profile High, pix_fmt yuv420p, 8-bit",
+      "unit": null,
+      "confidence": "measured",
+      "source": "ffprobe -show_streams on all 8, this session",
+      "measured_in_session": true
+    },
+    "rotation_side_data": {
+      "value": "absent on all 8 — no side_data_list, no display matrix, no rotate tag",
+      "unit": null,
+      "confidence": "measured",
+      "source": "ffprobe -show_streams on all 8, this session; vertical orientation is coded in the frame dimensions, not signalled by rotation metadata",
+      "measured_in_session": true
+    },
+    "audio_streams": {
+      "value": 0,
+      "unit": "streams",
+      "confidence": "measured",
+      "source": "ffprobe on all 8, this session",
+      "measured_in_session": true
+    },
+    "shots_per_file": {
+      "value": 1,
+      "unit": "shots",
+      "confidence": "measured",
+      "source": "scdet recount, this session",
+      "measured_in_session": true
+    },
+    "lifted_blacks": {
+      "value": true,
+      "unit": null,
+      "confidence": "measured",
+      "source": "signalstats YMIN this session: the split active areas floor at 31-41 and the two 1080p verticals at 30 and 14 (the 14 occurring inside the terminal fade, not in the body of the shot). No file reaches legal black (16) in its picture area during a shot.",
+      "measured_in_session": true
+    }
+  },
+  "omitted_parameters": {
+    "note": "Parameters a consumer might expect but that this corpus DOES NOT SUPPORT. They are listed here and set to null rather than defaulted, per the no-invented-constants rule.",
+    "target_cut_interval_s": null,
+    "target_cuts_per_minute": null,
+    "transition_type_vocabulary_beyond_fade_to_black": null,
+    "dissolve_duration_s": null,
+    "speed_ramp_curve": null,
+    "speed_ramp_factor": null,
+    "colour_grade_lut_or_curve": null,
+    "colour_grade_intensity_scale_definition": null,
+    "audio_bed_spec": null,
+    "text_overlay_or_caption_spec": null,
+    "motion_type_definitions": null,
+    "motion_energy_algorithm": null,
+    "clip_score_algorithm": null,
+    "scene_threshold_scale": null,
+    "front_loaded_motion_envelope": null,
+    "aspect_ratios_other_than_9_16_and_16_9": null,
+    "frame_rates_other_than_30": null,
+    "hdr_delivery_spec": null
+  },
+  "open_questions": [
+    "No cut rhythm can be extracted: the corpus is 100% single-shot (0 hard cuts across all 8 files, calibrated against a synthetic control whose real cuts scored 31.464 and 41.939). Any generator that needs a cut cadence must get it from outside this reference pack. Is the single-shot property the intended house style, or is this corpus simply a set of unassembled segments and single-shot tests?",
+    "The motion_type labels REVEAL / ORBIT_CW / STATIC are UNVERIFIABLE IN-SESSION. Distinguishing them requires per-pixel motion-vector direction and rotation estimation (optical flow), which needs cv2/numpy — absent from this environment, and no ffprobe/ffmpeg filter exposes flow direction. No label was guessed. The vocabulary is also almost certainly incomplete: ORBIT_CW implies an unattested ORBIT_CCW, and only 4 labelled clips exist. (Nuance recorded 2026-07-27, per claim C53's verdict and REVIEW.md section 5.1 group G: genuine opacity is narrower than wholesale - the DIRECTION labels REVEAL vs ORBIT_CW are unverifiable here, but the STATIC label is partly testable without cv2: a null-controlled 128-bin row-profile cross-correlation showed split_004 (declared STATIC) drifting ~2.7 px/frame. That single-run result is unreplicated and cannot separate camera pan from subject motion, so it is a caveat, not a finding.)",
+    "split_004_s65 is labelled STATIC yet measures mean MAFD 1.7130 (63.0% of the family maximum) with a per-second envelope of 1.20-2.77 and no near-zero stretch. Does STATIC mean 'no dominant directional camera motion' rather than 'no pixel change'? The manifest never defines it. Cannot be resolved without optical flow or the generating tool's source.",
+    "The 'drone_aerial' grade at intensity 0.65 has no LUT, curve, or definition anywhere in the corpus, and the reconciliation phase measured that it produced a luma-only change (YAVG -8.25%, YMAX -6.58%) with chroma movement of only 0.03-2.2%, i.e. within noise. What is the grade actually supposed to do, and what does the 0-1 intensity scale mean?",
+    "Whether the splits' bt709 retag without chroma conversion is a colour-management defect or the correct handling of a spurious source tag is UNRESOLVED. The source proxy declares bt2020nc / bt2020 / arib-std-b67 but is itself a libx264 transcode (Lavc62.11.100) with no mastering-display metadata, so its own wide-gamut tag may be spurious. Both branches remain live and the artifacts cannot settle it. (CORRECTED 2026-07-27 by adversarial verification, claim C58 killed 3/3 unanimous: the \"internally weak\"/\"may be spurious\" characterisation is withdrawn. The proxy's HLG signalling set is COMPLETE and mutually consistent - color_space bt2020nc + color_primaries bt2020 + color_transfer arib-std-b67 + color_range tv over 10-bit yuv420p10le; three agreeing fields over a 10-bit stream is what a deliberate HLG encode looks like, whereas a spurious tag is normally a lone matrix field over 8-bit. Mastering-display metadata is an HDR10/PQ container concept and its absence on an HLG stream is normal, not corroborating weakness. The splits' bt709 retag carries primaries/transfer ABSENT - an incomplete set - so relative tagging quality favours the proxy, and the retag WITHOUT chroma conversion is correspondingly MORE plausibly a colour-management defect. The only branch still open is whether the camera original behind this transcode was itself HLG/BT.2020 (FURTHER RESOLVED 2026-07-27, this session, same day: the camera original was located at DJI_20241029174803_0355_D.MP4, same .advanced/ directory as the proxy, and pixel-matched against it at 7 of 9 sampled timestamps spanning the full duration, PSNR y 29-40 dB vs a calibrated same-pair floor of 15.5-19.6 dB - CONFIRMED, high confidence. It declares the identical bt2020nc/bt2020/arib-std-b67/tv HLG tag set as the proxy, so yes, the camera original was itself HLG/BT.2020-tagged. What remains genuinely open, narrower still, is whether the drone_aerial grade was applied as specified - a separate question this measurement does not touch. See REVIEW.md section 2.1a and section 5.1 group D.)",
+    "'Front-loaded motion' was reported by an earlier phase (range ratios 33.3x / 60.7x / 13.1x) but my own measurement shows it holds only on the scdet SCORE metric (|delta MAFD|, an unsteadiness measure) and collapses on MAFD itself (5.0x / 5.5x, with viral_test_v2 slightly BACK-loaded at 1.176 -> 1.302). The splits show the same directional pattern on the score metric (7.8x, 6.0x). Which metric, if either, does the house style actually intend to control? Omitted from this document rather than asserted.",
+    "instagram_reel_v34_all_kb_full.mp4 carries the corpus's only unexplained structural feature: a 19-frame run at t=0.77-1.40 s above 5x its own median frame-difference (every other file tops out at 2-5 frames). Whether this is a dissolve, an overlay animation, or a compression artifact is UNRESOLVED. Its frame-locked 1080p twin cannot settle it, because a dissolve present in the shared cut would appear identically in both and so would not disturb their PSNR.",
+    "Presence of burned-in text, captions, logos or graphic overlays in ANY file is UNMEASURED but NOT unmeasurable — the frame-capture prohibition blocks visual IDENTIFICATION (what an overlay says or looks like), not DETECTION of its presence. Region-wise MAFD, signalstats, or freezedetect on crops can detect a static or animated overlay region entirely in-pipe (ffmpeg -f null, nothing persisted); this was not attempted in this pass, beyond a coarse 3x6 spatial-grid check on the two 1080p verticals that found no zero-variance region (partial, not a clearance). (CORRECTED 2026-07-27 by adversarial verification, claim C59 killed 3/3 unanimous.) Separately, this is NO LONGER linked to a \"front-loaded\" motion envelope as a candidate cause: that claim (front_loaded_motion_envelope, above) was itself killed on independent verification (C56, 3/3 unanimous) and is recorded as null in this document. It remains one candidate explanation for the unexplained 19-frame elevated run in instagram_reel_v34_all_kb_full at t=0.77-1.40s (open_questions above).",
+    "The SOURCE of the four vertical files is UNKNOWN. The topology phase ruled out DJI_0355_proxy.mp4 with a calibrated null (best lagged luma correlation +0.5228 for instagram_reel_test against its own time-reversed null of +0.7748, i.e. worse than chance; MPEG-7 signature detectmode=full returned 'no matching of video 0 and 1'), and no parent exists in the searched tree. manifest.json documents nothing about them, so their aspect/duration/grade choices have no recorded intent.",
+    "manifest.json split_params.scene_threshold 7.0 is on an undocumented scale incommensurable with ffmpeg's scdet 0-100 metric — zero of the source proxy's 1,909 frames exceed 7.0 and the source maximum is 1.706. The value cannot be checked, and the reconciliation phase showed 4 of 5 clip boundaries fall at frames ranking at or below the source median by frame difference, so the boundaries are max_duration-driven rather than content-driven. What tool and metric produced the '7.0'?",
+    "The corpus attests exactly two aspect ratios (9:16 coded, and 16:9 coded with a 2.352941 active area) and one frame rate (30/1). No 1:1, 4:5, 4:3, 2:1, 24 fps, 25 fps, 50 fps or 60 fps surface is attested. Any generator supporting those needs specs from outside this pack.",
+    "Durations are reported as OBSERVED values (8.3, 14.566667, 15.0, 27.1 s) rather than as target ranges. With only 3 distinct compositions in the corpus, no duration target can be established. Is 15 s a deliberate maximum, or just this one tool run's max_duration setting?",
+    "The four vertical files carry NO colour tagging at all (no color_space, color_primaries, color_transfer, or color_range). Is untagged output intentional for social delivery, or an oversight? Downstream players will assume BT.709 by convention, but the files do not say so.",
+    "OQ14 (ADDED 2026-07-27 by completeness audit; see REVIEW.md 7.3 finding 4). Every file in the corpus, and the located source proxy, has ZERO audio streams - measured, undisputed (ffprobe format.nb_streams = 1 on all 9, sole stream codec_type = video). This is the single largest structural absence in the corpus and it was never framed as a question. Is delivering silent an intentional house rule, a pipeline artefact (audio stripped at export), or a placeholder for a downstream audio pass? The corpus cannot distinguish these three and they imply DIFFERENT edit grammars: four of the eight files are social-vertical deliverables for audio-first surfaces (Reels, TikTok), where cuts are normally timed to a track. Because the corpus is also 100% single-shot (OQ1), no cut-to-audio relationship could have been measured even if audio were present - so this question cannot be closed from the media and must be answered by the originating project.",
+    "OQ15 (ADDED 2026-07-27 by completeness audit; see REVIEW.md 7.2 finding 1). What IS the relationship between instagram_reel_test.mp4 and instagram_reel_v34_all_kb_full.mp4? They were treated throughout as a 1080/4K rendition pair by analogy with the viral pair, but they are not one in the pixel sense. Both are 813 frames / 27.100000 s and frame-locked, yet downscaling the 4K member to 1080x1920 (bicubic) and comparing against the 1080 member gives PSNR y 19.204 dB over the first 10 s, against 32.017 dB for the viral pair measured identically - a 12.8 dB gap. One skeptic independently measured 24.267 dB over the full file with the first 81 frames at 19.4-21.3 dB, indistinguishable from a same-source wrong-offset null of 19.94 dB. So they are the SAME CUT rendered twice with different pixel content (grade, overlays, or export settings), not one render at two resolutions. The naming compounds this: '_v34' has the EARLIER mtime (2026-02-04 14:32) and '_test' the later (2026-02-08 17:42), inverting the obvious reading. Whatever differs between them is a house-style decision this pack cannot see, and it means the reel pair must NOT be used as evidence for a resolution ladder.",
+    "OQ16 (ADDED 2026-07-27, archive expansion). Three of the six newly-probed raw masters share one HLG transfer curve, one is SDR bt709, and one is PQ -- a genuinely mixed-format capture tree, not a controlled single-format corpus. Any pipeline assuming uniform camera colour handling across this footage would be wrong for at least 2 of 6 files. Which transfer curve, if any, represents the 'normal' capture for this drone/workflow, and are the two outliers a different flight profile, a firmware change, or operator error? Cannot be answered from the files alone.",
+    "OQ17 (ADDED 2026-07-27, archive expansion). Two archive manifests (highlights_graded_25s, highlights_long) document fewer clips than physically exist in their directories (3-of-10 and 3-of-5 respectively), and highlights_long's undocumented files include a byte-identical duplicate. Is the current manifest.json in each directory the AUTHORITATIVE record of what that directory should contain, or is it itself stale relative to the files? This pack has treated manifest.json as ground truth to reconcile AGAINST throughout -- these two directories are the first case where the manifest may be the outdated artefact, not the files.",
+    "OQ18 (ADDED 2026-07-27, archive expansion). highlights_best's manifest shows scenes_detected(15) - scenes_filtered(0) = 15 against total_clips 5, the widest scenes-vs-clips mismatch measured anywhere in this pack (200%), while highlights_graded/highlights_graded_25s show the opposite pattern (scenes_detected == total_clips exactly). The splitting tool's scene-count bookkeeping is not merely undocumented -- it appears INCONSISTENT IN DIRECTION across runs of the same tool. No file in reach explains why."
+  ],
+  "archive_expansion_generalization": {
+    "added": "2026-07-27, this session",
+    "note": "Whether this document's house-style claims (derived from the original 8-file, 1-manifest corpus) generalize to the archive's 6 raw camera masters, 39 derivative clips, and 7 additional manifest.json files. Full detail: REVIEW.md section 8; compact index: data/manifests/reference_pack.json -> archive_expansion.",
+    "verification_caveat": {
+      "value": "6 of 7 new manifest reconciliations were NOT independently adversarially verified (an infrastructure failure interrupted that pass). Treat with less certainty than the skeptic-confirmed claims elsewhere in this document.",
+      "confidence": "assumed",
+      "source": "REVIEW.md section 8.4"
+    },
+    "zero_shot_count": {
+      "value": 1,
+      "unit": "shots",
+      "confidence": "measured",
+      "source": "All 6 raw masters and all 39 derivative clips measured this session: zero frames >= 5.0 on scdet's 0-100 scale except one frame-1 scdet warm-up artifact (highlights__split_003_s61, 7.828 at row 1; true max excluding it 1.448) -- the same documented artifact this pack's README already warns about, reproducing correctly on new material. See REVIEW.md section 2.6.",
+      "measured_in_session": true
+    },
+    "auto_speed_no_op": {
+      "value": "untestable beyond the original 1 manifest",
+      "confidence": "measured",
+      "source": "auto_speed is absent from split_params in all 7 archive manifests. Not re-confirmed, not refuted -- simply not exercised again. REVIEW.md section 8.2."
+    },
+    "color_luma_only_chroma_inert": {
+      "value": "generalizes as a category; luma direction/magnitude is NOT a fixed function of color_intensity",
+      "confidence": "measured",
+      "source": "6 of 7 archive manifests declare a color grade; all reproduce chroma-inert (signalstats UAVG/VAVG/SATAVG at or within noise). But highlights_graded's luma direction is OPPOSITE the original manifest's, and highlights_graded_25s shows a STRONGER luma reduction (-11.0%) at a LOWER stated color_intensity (0.6 vs the original's 0.65). REVIEW.md section 8.2.",
+      "measured_in_session": true
+    },
+    "scene_threshold_incommensurable": {
+      "value": "generalizes and strengthens; worst-case ratio ~36x (vs the original manifest's ~4x)",
+      "confidence": "measured",
+      "source": "Every archive manifest's scene_threshold sits further above its own source's measured scdet ceiling than the original's 7.0-vs-1.706 gap. highlights_graded_25s: 50.0 vs the raw master's own ceiling, the widest gap measured anywhere in this pack. REVIEW.md section 8.2.",
+      "measured_in_session": true
+    },
+    "boundaries_not_content_derived": {
+      "value": "generalizes and strengthens",
+      "confidence": "measured",
+      "source": "highlights_graded: 7/7 boundaries at or below median scdet rank (vs the original's 4/5), a gap-free mechanical 10s grid across the full source with scenes_detected exactly equal to total_clips -- the strongest evidence in this pack that scenes_detected tracks output-clip count, not real segmentation. REVIEW.md section 8.2.",
+      "measured_in_session": true
+    },
+    "transfer_curve_diversity": {
+      "value": "3 distinct transfer curves across 6 raw masters from one source tree: HLG (4 files), SDR/bt709 (1 file), PQ (1 file)",
+      "confidence": "measured",
+      "source": "DJI_20241030011801_0346_D.MP4 is bt709/bt709 (SDR); DJI_20241029174916_0356_D_383181722.mov is bt2020nc/smpte2084 (PQ); the other 4 (including the confirmed camera original) are bt2020nc/arib-std-b67 (HLG). REVIEW.md section 2.5.",
+      "measured_in_session": true
+    }
+  }
+}
