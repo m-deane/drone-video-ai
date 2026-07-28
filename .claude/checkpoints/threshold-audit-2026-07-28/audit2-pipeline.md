@@ -1,22 +1,4 @@
-# audit2-pipeline — the wiring
+# audit2-pipeline — SKELETON (in progress)
 
-Target: `src/drone_video_ai/highlight_extraction/pipeline.py`
-Status: SKELETON — in progress
-
-## 1. Constant inventory
-(pending)
-
-## 2. Classification table
-(pending)
-
-## 3. Order-of-operations trace
-(pending)
-
-## 4. Interaction bugs
-(pending)
-
-## 5. Hypotheses tested
-(pending)
-
-## 6. Verdict
-(pending)
+Target: src/drone_video_ai/highlight_extraction/pipeline.py
+Status: STARTED 2026-07-28T20:53:00Z

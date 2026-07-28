@@ -201,6 +201,21 @@ This is an orientation failure, not a sloppiness failure — the code is careful
 and several constants are honestly labelled as arbitrary-but-defensible. But the cost is concrete
 and was **confirmed by execution**, not inferred:
 
+0. **THE BIG ONE — segmentation is inert on 6 of 8 corpus files.** `split_segments`
+   (`segmentation.py:135`) is greedy on `chosen = max(within_max)`: it takes the FARTHEST
+   boundary that still fits inside `max_duration`. So whenever the whole file fits inside
+   `max_duration`, it returns exactly one segment spanning the file and **discards every interior
+   boundary it just computed**. Verified on `split_001_s70.mp4`: the pipeline discovers 12 interior
+   boundaries, then emits 1 segment `(0.0, 15.0)`. Lowering the cap recovers them —
+   `max_duration=8.0 -> 2 segments`, `5.0 -> 4`, `3.0 -> 6` — so the machinery works; the default
+   is wrong for this footage. `DEFAULT_DURATION_PROFILE.max_duration = 15.0` traces to spec AC1.4,
+   and the pack's measured shot lengths are `[8.3, 14.567, 14.567, 15.0, 15.0, 15.0, 27.1, 27.1]`
+   — **6 of 8 are ≤ 15.0**, and the mean is 17.08. Only the two 27.1 s files ever split.
+   This compounds with finding 2: one segment forces `n=1`, which pins `sharpness` and
+   `motion_smoothness` to 1.0. **Net effect on this corpus: the highlight extractor emits one
+   whole-file segment with half its quality signals saturated, so it cannot rank highlights
+   because it never produces more than one.** Nothing is broken in the code; the default cap and
+   the measured footage were simply never compared.
 1. **No scorer crops the letterbox.** Every pack measurement uses `crop=1280:544:0:88`; no scorer
    crops at all (grep: zero crop logic in `highlight_extraction/`). Measured effect on
    `split_001_s70.mp4`: cropping the bars off moves **exposure +0.2444** — the pack's measured
