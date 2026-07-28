@@ -259,7 +259,8 @@ def _horizon_levelness_score(gray_frame: np.ndarray) -> float:
 
 
 def compute_raw_composition(
-    video_path: str, start_time: float, end_time: float, max_samples: int = 10
+    video_path: str, start_time: float, end_time: float, max_samples: int = 10,
+    active_rect: Optional["ActiveRect"] = None,
 ) -> float:
     """Return the composition score (already normalized to ``[0, 1]``) over
     up to ``max_samples`` frames evenly sampled within
@@ -292,6 +293,8 @@ def compute_raw_composition(
             if not ret:
                 continue
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if active_rect is not None:
+                gray = active_rect.crop(gray)
             rot_scores.append(_rule_of_thirds_score(gray))
             horizon_scores.append(_horizon_levelness_score(gray))
 

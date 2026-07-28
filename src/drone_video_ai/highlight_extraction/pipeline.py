@@ -26,6 +26,7 @@ from drone_video_ai.common.manifest import (
 )
 from drone_video_ai.highlight_extraction import segmentation as seg_mod
 from drone_video_ai.highlight_extraction.gates import GateConfig, evaluate_gates
+from drone_video_ai.highlight_extraction.letterbox import detect_active_rect
 from drone_video_ai.highlight_extraction.motion import compute_motion_series
 from drone_video_ai.highlight_extraction.scoring_exposure import compute_raw_exposure
 from drone_video_ai.highlight_extraction.scoring_motion_smoothness import (
@@ -76,7 +77,15 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
         pix_fmt=probe.pix_fmt,
     )
 
-    motion_samples = compute_motion_series(video_path)
+    # Detect the active picture area ONCE per video and crop every scored frame
+    # to it. data/reference_pack/ measured that 4 of this project's 8 corpus
+    # files carry baked-in letterbox bars costing 24.4% of frame; scoring them
+    # as picture moved exposure by exactly that fraction (0.7556 vs 1.0000 on
+    # split_001_s70.mp4) because bar luma 16 in a tv-range stream decodes to 0,
+    # below scoring_exposure.LOW_CLIP_THRESHOLD. See letterbox.py.
+    active_rect = detect_active_rect(video_path)
+
+    motion_samples = compute_motion_series(video_path, active_rect=active_rect)
 
     boundary_set = seg_mod.build_candidate_boundaries(
         video_path=video_path,
@@ -102,14 +111,14 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
 
     for start, end in raw_segments:
         raw_sharpness.append(
-            compute_raw_sharpness(video_path, start, end, max_samples=cfg.max_score_samples_per_segment)
+            compute_raw_sharpness(video_path, start, end, max_samples=cfg.max_score_samples_per_segment, active_rect=active_rect)
         )
         raw_exposure.append(
-            compute_raw_exposure(video_path, start, end, max_samples=cfg.max_score_samples_per_segment)
+            compute_raw_exposure(video_path, start, end, max_samples=cfg.max_score_samples_per_segment, active_rect=active_rect)
         )
         raw_jerk.append(compute_raw_jerk_magnitude(motion_samples, start, end))
         raw_composition.append(
-            compute_raw_composition(video_path, start, end, max_samples=cfg.max_score_samples_per_segment)
+            compute_raw_composition(video_path, start, end, max_samples=cfg.max_score_samples_per_segment, active_rect=active_rect)
         )
 
     normalized_sharpness = min_max_normalize(raw_sharpness)

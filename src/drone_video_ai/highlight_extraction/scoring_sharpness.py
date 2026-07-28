@@ -8,7 +8,7 @@ un-normalized per-segment statistic).
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -26,7 +26,8 @@ def _sample_frame_indices(start_frame: int, end_frame: int, max_samples: int) ->
 
 
 def compute_raw_sharpness(
-    video_path: str, start_time: float, end_time: float, max_samples: int = 10
+    video_path: str, start_time: float, end_time: float, max_samples: int = 10,
+    active_rect: Optional["ActiveRect"] = None,
 ) -> float:
     """Return the mean Laplacian-variance sharpness statistic over up to
     ``max_samples`` frames evenly sampled within ``[start_time, end_time)``.
@@ -51,6 +52,8 @@ def compute_raw_sharpness(
             if not ret:
                 continue
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if active_rect is not None:
+                gray = active_rect.crop(gray)
             variances.append(float(cv2.Laplacian(gray, cv2.CV_64F).var()))
 
         if not variances:

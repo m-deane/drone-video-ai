@@ -8,7 +8,7 @@ matching the manifest's documented normalization method for this signal.
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -41,7 +41,8 @@ def _clipped_fraction(gray_frame: np.ndarray) -> float:
 
 
 def compute_raw_exposure(
-    video_path: str, start_time: float, end_time: float, max_samples: int = 10
+    video_path: str, start_time: float, end_time: float, max_samples: int = 10,
+    active_rect: Optional["ActiveRect"] = None,
 ) -> float:
     """Return the exposure score (``1 - mean clipped_fraction``) over up to
     ``max_samples`` frames evenly sampled within ``[start_time, end_time)``.
@@ -65,6 +66,8 @@ def compute_raw_exposure(
             if not ret:
                 continue
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if active_rect is not None:
+                gray = active_rect.crop(gray)
             fractions.append(_clipped_fraction(gray))
 
         if not fractions:

@@ -47,7 +47,8 @@ class MotionSample:
 
 
 def compute_motion_series(
-    video_path: str, max_frames: Optional[int] = None
+    video_path: str, max_frames: Optional[int] = None,
+    active_rect: Optional["ActiveRect"] = None,
 ) -> List[MotionSample]:
     """Compute a per-frame camera-motion magnitude time series for the whole
     video using sparse optical flow.
@@ -74,6 +75,8 @@ def compute_motion_series(
             if not ret:
                 break
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if active_rect is not None:
+                gray = active_rect.crop(gray)
             t = frame_idx / fps
             magnitude = 0.0
 
