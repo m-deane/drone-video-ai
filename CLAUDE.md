@@ -247,6 +247,25 @@ pipeline, reported `scenes_detected = 0` on every corpus file — independently 
 pack's zero-hard-cuts finding with a completely different tool from the `ffmpeg scdet` the pack
 used. That is the strongest confirmation the pack's central claim has.
 
+**Scope correction to the toolchain constraint below.** That section says this project has "no
+optical-flow capability". That is true of the **reference pack's** measurement layer
+(ffprobe/ffmpeg + stdlib) and remains the reason pack claims about camera-motion direction are
+OUT OF REACH. It is **not** true of `src/`: `motion.py` runs genuine sparse optical flow
+(`cv2.goodFeaturesToTrack` + `calcOpticalFlowPyrLK`), deliberately avoiding ffmpeg's GPL
+`vid.stab` per plan.md's resolution of spec Open Question 5. It computes **magnitude only** —
+mean Euclidean feature displacement — not direction or rotation, so the corpus manifest's
+`REVEAL`/`ORBIT_CW`/`STATIC` labels stay unverified. But the capability gap is narrower than a
+plain reading of the toolchain section suggests: the pipeline could reach direction; it chose
+not to.
+
+Capability 2 is in materially better shape than Capability 1: 16 constants, 0 MEASURED but 5 SPEC
+and 9 LIBRARY_DEFAULT, only 2 INVENTED and both inert. `pacing.py` correctly invents no cut
+rhythm where the pack found none. Its real defect is a verification bug — `verify.py:60` compares
+whole framemd5 lines including pts, but pts/frame-count depend on sub-frame `-ss` phase, while
+`pacing.py:102` puts `out_tc` off the measured 30/1 CFR grid that `otio_export.py:179` already
+quantises to. So `verify` can fail on byte-perfect paced renders, and passes vacuously on empty
+input.
+
 Full per-constant tables: `.claude/checkpoints/threshold-audit-2026-07-28/`.
 **None of these findings has been fixed.** Each fix is a design decision, not a cleanup.
 
