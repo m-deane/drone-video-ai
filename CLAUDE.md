@@ -23,15 +23,26 @@ extraction, reel stitching, and reference-pack curation." Three capabilities:
 3. **Reference-pack curation** — no console script, no milestone marker in `pyproject.toml`.
    This is the only capability with a built deliverable right now (see below).
 
-**Current implementation state, verified this session — read before assuming otherwise:**
-`src/` and `tests/` **do not exist on disk**, despite `pyproject.toml` declaring both
-(`[tool.setuptools.packages.find] where = ["src"]`, `[tool.pytest.ini_options] testpaths =
-["tests"]`). `.venv/` is an empty husk (`pyvenv.cfg` only, no `bin/`); no declared runtime
-dependency (`opencv-contrib-python`, `scenedetect[opencv]`, `numpy`, `opentimelineio`,
-`otio-cmx3600-adapter`) is installed, and system `python3` has none of them either. The two
-console scripts above are **not runnable**. This is not a partially-broken pipeline — it is a
-project whose implementation was lost (most plausibly alongside a corrupted `.git`, see
-below) while its planning/spec layer and one fully-built deliverable survived.
+**Current implementation state, verified 2026-07-28 — read before assuming otherwise:**
+
+> **CORRECTED 2026-07-28. The previous version of this section said the implementation was lost.
+> It was not.** `.git` was corrupt (config only, no objects/refs), which made the configured
+> remote unreachable and the working tree look like all that survived. Repairing `.git` recovered
+> 7 commits from `https://github.com/m-deane/drone-video-ai.git`. Do not re-derive the
+> "implementation was lost" conclusion from a bare `ls` — it was wrong for three sessions.
+
+`src/` and `tests/` **exist and are populated**: 28 Python files / ~4,079 LOC across
+`common/`, `highlight_extraction/`, `reel_stitching/`, `reference_pack/`, and 22 test files /
+~2,060 LOC. Recovered 2026-07-28 from `origin/main` (commit `8163d4b`, "implement Milestone 1
+of all three drone-video-ai capabilities").
+
+**They cannot be run or tested in this environment, and that is a separate problem from
+existence.** `.venv/` is an empty husk (`pyvenv.cfg` only, no `bin/`); `pytest`, `cv2`
+(`opencv-contrib-python`), `scenedetect`, and `opentimelineio` are all absent from system
+`python3` (`numpy` is present). The two console scripts are therefore **not runnable here**, and
+no test in `tests/` has been executed in this environment. Per the toolchain constraint below,
+do not `pip install` to change this without the user's decision. **Nothing in `src/` has been
+verified by execution — treat all claims about its behaviour as unconfirmed.**
 
 **What does exist and is real, working, and verified:**
 
@@ -46,9 +57,18 @@ below) while its planning/spec layer and one fully-built deliverable survived.
   per-file `ffprobe` fingerprints, provenance, and (as of 2026-07-27) an `archive_expansion`
   section covering 6 raw camera-original drone masters and 39 derivative clips used to
   cross-validate the pack's findings, kept clearly distinguished from the corpus proper.
-- **`.claude/specs/reference-pack/spec.md`** — the only capability with a spec.
-  **Status: DRAFT — not signed off.** Per the Spec-Driven Workflow below, no Plan/Tasks/
-  Implement phase may begin against it until the user explicitly signs off.
+- **`data/reference_pack/exemplars/`** — 58 curated third-party reference videos (recovered
+  2026-07-28). **Metadata-only by design**: every entry carries `license_category:
+  "all-rights-reserved"` as a conservative default and `local_media_path: null`; no media file is
+  ever downloaded or persisted. Entries record source URL, creator, platform, retrieval date,
+  award/showcase provenance, scores, and — critically — a `scores_provenance` flag distinguishing
+  measured values from `manually_estimated` ones. This is the project's answer to "what should we
+  aim at", and it is the model for how provenance should be recorded anywhere in this repo.
+- **`.claude/specs/`** — **two** specs, not one:
+  - `drone-video-pipeline/` — `spec.md` + `plan.md` + `tasks.md`, the chain behind the
+    implemented Capabilities 1 and 2. Recovered 2026-07-28.
+  - `reference-pack/spec.md` — **Status: DRAFT, not signed off.** Per the Spec-Driven Workflow
+    below, no Plan/Tasks/Implement phase may begin against *this one* until the user signs off.
 - **`.claude/`** — a full Claude Code scaffold (73 skills, 73 hookify rules, 17 agents,
   recipes, router, settings) synced from `claude-template` on 2026-07-25/26. `.claude/CLAUDE.md`
   (behavioural directives) and `.claude/settings.json` are project-owned per that template's
@@ -116,19 +136,29 @@ code.
 ## Architecture
 
 ```
+src/drone_video_ai/            # RECOVERED 2026-07-28 from origin/main — 28 files, ~4,079 LOC
+├── common/                    # ffprobe.py, manifest.py, schema.py
+├── highlight_extraction/      # segmentation, motion, gates, weights, composite, 4x scoring_*, cli
+├── reel_stitching/            # otio_export, pacing, color_pinning, render, verify, edit_manifest, cli
+└── reference_pack/            # schema.py, storage.py
+tests/                         # RECOVERED — 22 files, ~2,060 LOC. NOT RUNNABLE HERE (no pytest)
+
 data/
 ├── reference_pack/          # the built deliverable — see "What each artifact means" in its own README
 │   ├── README.md             # regeneration recipes, directory layout, failure traps — read first
 │   ├── REVIEW.md              # full per-file review, manifest reconciliation, verification log
 │   ├── editorial_style.json  # machine-readable house style, confidence-labeled per value
 │   ├── probe/                 # raw ffprobe JSON + scdet CSV — the primary source, everything else derives from this
+│   ├── exemplars/             # 58 third-party reference videos, METADATA ONLY (local_media_path: null)
 │   └── media/                 # .gitkeep only — NEVER holds actual media (licence constraint, see below)
 ├── manifests/
 │   └── reference_pack.json    # machine-readable file index + archive_expansion cross-validation index
+├── reference/                  # REGISTRY.md — provenance census of the archived _p-ai-drone-video corpus
 └── raw/                        # (if present) gitignored local consolidated footage copy — convenience only
 
 .claude/
-├── specs/reference-pack/spec.md   # the only spec in this repo. Status: DRAFT.
+├── specs/drone-video-pipeline/    # spec.md + plan.md + tasks.md — the chain behind Capabilities 1 & 2
+├── specs/reference-pack/spec.md   # Status: DRAFT, not signed off.
 ├── CLAUDE.md                       # behavioural directives — project-owned, not overwritten by sync
 ├── settings.json                   # permissions + hooks — project-owned, not overwritten by sync
 ├── skills/, hookify.*.local.md, recipes/, router.md, agents/   # synced scaffold from claude-template
@@ -142,11 +172,12 @@ requirements-promptlab.txt   # INHERITED claude-template maintainer content — 
                               # content as authoritative for this project; do not delete them
                               # without asking (disposition is an open question, not decided).
 
-.git/    # CORRUPT — contains only HEAD/config/COMMIT_EDITMSG/description, no objects/refs/
-         # index. Every git command fails with "fatal: not a git repository". Nothing in this
-         # repo is currently under version control. Do not run `git init` or any git command
-         # without the user's explicit authorization — this has been raised and deferred at
-         # least once already; treat silence as "still deferred," not as permission.
+.git/    # REPAIRED 2026-07-28 — was corrupt (HEAD/config/COMMIT_EDITMSG/description only, no
+         # objects/refs/index), which made the CONFIGURED REMOTE unreachable and made the working
+         # tree look like all that survived. Re-initialised, fetched origin, reset --mixed to
+         # origin/main (working tree untouched), restored only deleted paths. 8 commits now.
+         # Remote: https://github.com/m-deane/drone-video-ai (public). Local main is 1 commit
+         # AHEAD of origin/main — the reconciliation commit has NOT been pushed.
 ```
 
 **Why the reference pack exists.** Capability 1 scores highlights, Capability 2 stitches
@@ -224,7 +255,7 @@ different output. State the assumed value before any task that produces an artif
 | `corpus-scope` | "the corpus" = the original 9-entry `00-assets/drone-video-examples/` directory only; the `_archive/` cross-validation material (6 raw masters, 39 derivatives) is explicitly separate | conflating archive-expansion counts with corpus counts → the exact drift bug that has already broken this pack's own acceptance criteria twice |
 | `spec-status` | `.claude/specs/reference-pack/spec.md` is DRAFT, not signed off; any divergence found while extending the pack amends the spec first, never diverges silently | treating the spec as authorising implementation → building `src/` against an unapproved design |
 | `archive-write-mode` | `_archive/` and `00-assets/` are read-only; footage is referenced by absolute path, never copied into this repo (only measurement output — small JSON/CSV — is written to `data/reference_pack/probe/`) | copying multi-GB footage into git-tracked space, or modifying a file under either read-only tree |
-| `git-repair-mode` | `.git` stays corrupt/untouched until the user explicitly authorizes repair; this has been raised and deferred already | running `git init` unprompted → silently starting version control on work the user hasn't decided how to handle yet |
+| `git-repair-mode` | RESOLVED 2026-07-28 — `.git` is repaired and healthy, 8 commits, remote `origin` = `github.com/m-deane/drone-video-ai`. Local `main` is 1 commit AHEAD of `origin/main` and has never been pushed | assuming `.git` is still corrupt → refusing to commit, or re-running `git init` over a working repository |
 | `verification-completeness` | assume PARTIAL — some claims in `data/reference_pack/` are adversarially verified (independent skeptics, majority-refute), others (notably 6 of 7 archive-manifest reconciliations as of 2026-07-27) are single-pass and explicitly flagged as not yet independently confirmed | treating every claim in the pack as equally certain — REVIEW.md §7/§8 record which is which; check before citing a number as settled |
 
 When a task does not name its switch values, assume the defaults above and state the
@@ -276,11 +307,14 @@ assumption explicitly before proceeding.
   long-running or heavily-parallel workflow agents have repeatedly stalled mid-stream this
   session, and any `await agent()` call *not* wrapped in `parallel()`/`pipeline()` will crash
   the entire workflow script if it stalls — always wrap every agent call, even a single one.
-- **"commit"**: `.git` is currently corrupt — there is nothing to commit to. Say so rather
-  than attempting the action; do not silently no-op.
-- **"anything else?" / "what's left?"**: Scan for open items — the git-repair decision, the
-  inherited-file disposition decision, and `REVIEW.md`/`spec.md`'s own recorded Open
-  Questions are the standing ones as of 2026-07-27.
+- **"commit"**: `.git` works (repaired 2026-07-28). Commit normally. Local `main` is ahead of
+  `origin/main` and unpushed — say so, and treat `push` as a separate, outward-facing action
+  requiring its own confirmation. The remote is **public**.
+- **"anything else?" / "what's left?"**: Scan for open items — as of 2026-07-28 the standing ones
+  are: the unpushed commit, whether `src/` should be made runnable (needs a venv + deps, currently
+  blocked by the no-`pip install` rule), the inherited-file disposition decision, `data/reference/`'s
+  redundancy against `exemplars/` (see `data/reference/REGISTRY.md` §7), and `REVIEW.md`/`spec.md`'s
+  own recorded Open Questions.
 - **"no" / "no thank you"**: Decline acknowledged. Stop. Do not re-propose.
 
 ## Skill Routing
@@ -335,8 +369,14 @@ once pipeline code (and its prompts, if any) exist.
 
 ## Git Remotes
 
-`.git` is corrupt in this repo (see Architecture above) — there is currently no remote to
-check. If `.git` is ever repaired, run `git remote -v` before any push, same as any repo.
+**`origin` = `https://github.com/m-deane/drone-video-ai` — and it is PUBLIC.** Corrected
+2026-07-28: this section previously said there was no remote. There always was one; `.git` was
+corrupt, so `git remote -v` failed and the remote's existence was invisible. That single stale
+sentence is why three sessions believed the implementation had been lost.
+
+Run `git remote -v` before any push, same as any repo. Because the remote is public, treat every
+push as publishing: check that no absolute local path, credential, or user-identifying detail is
+being added that should not be. Local `main` is currently 1 commit ahead and unpushed.
 
 ## File Safety
 
@@ -356,12 +396,17 @@ check. If `.git` is ever repaired, run `git remote -v` before any push, same as 
 Phase order: **Spec → Plan → Tasks → Implement**. Each phase produces a named artifact; the
 user must explicitly sign off before the next phase begins.
 
-`.claude/specs/reference-pack/spec.md` exists and is the only spec in this repo — **Status:
-DRAFT**. No Plan/Tasks/Implement phase may begin against it without explicit user sign-off.
-Capabilities 1 and 2 (highlight extraction, reel stitching) have **no spec at all** — if
-asked to implement `src/drone_video_ai/highlight_extraction/` or `reel_stitching/`, a spec
-must be written and approved first, per this section, not skipped because `pyproject.toml`
-already names the console-script entry points.
+There are **two** spec trees, and they are at different phases:
+
+- `.claude/specs/drone-video-pipeline/` — `spec.md` + `plan.md` + `tasks.md`, complete through
+  Implement. Capabilities 1 and 2 were **built against this chain** (commit `8163d4b`). Corrected
+  2026-07-28: this file previously said Capabilities 1 and 2 had "no spec at all", which was wrong
+  — the spec existed on `origin/main` and was unreachable only because `.git` was corrupt.
+- `.claude/specs/reference-pack/spec.md` — **Status: DRAFT, not signed off.** No Plan/Tasks/
+  Implement phase may begin against *this* spec without explicit user sign-off.
+
+Before implementing against either, re-read it. Do not infer a spec's phase from the presence of
+code — infer it from the spec's own recorded status.
 
 When something is ambiguous during implementation, return to the spec. Amend the spec, then
 code. Never improvise divergence from a signed-off spec — and never treat a DRAFT spec as

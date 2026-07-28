@@ -1,7 +1,21 @@
 # reference registry
 
-**Status: FINDINGS DOCUMENT — not a curated catalogue, because there is nothing to curate.**
-Built 2026-07-28. Supersedes nothing; this is the first content ever written to `data/reference/`.
+**Status: FINDINGS DOCUMENT — a provenance census of the archived `_p-ai-drone-video` research
+corpus.** Built 2026-07-28.
+
+> **CORRECTION, 2026-07-28 (same day, after `.git` was repaired).** This document was written while
+> `src/`, `tests/` and `data/reference_pack/exemplars/` were absent from disk and believed lost. They
+> were not lost — they were on `origin/main`, unpushed-to since 2026-07-20 and unreachable only
+> because `.git` was corrupt. **This project already has a curated reference-video catalogue: 58
+> exemplars at `data/reference_pack/exemplars/`.**
+>
+> Every finding below still stands — the census was scoped to the archived
+> `_p-ai-drone-video` corpus, which is what the 2026-07-27 session was mining and what
+> `.gitignore` lines 38–44 pointed at. But the original framing ("there is nothing to curate")
+> generalised from that corpus to this project, and that generalisation was wrong. Section 1 is
+> a census of **the archived corpus**, not an inventory of this project's reference material.
+> See §9 for how the two compare — the comparison is unflattering to the archived corpus, not to
+> this project.
 
 ---
 
@@ -28,8 +42,10 @@ The intended source material was the archived research corpus at
 different, earlier project. The session of 2026-07-27 was mid-census of that corpus when it stopped.
 This file completes that census.
 
-**The census answered the question in the negative.** The corpus does not contain a catalogue of
-best-in-class reference videos. It contains one.
+**The census answered the question in the negative — for that corpus.** The archived
+`_p-ai-drone-video` research corpus does not contain a catalogue of best-in-class reference videos.
+It contains one video. This project's own catalogue, built separately and to a far higher standard,
+is at `data/reference_pack/exemplars/` — see §9.
 
 ---
 
@@ -340,23 +356,66 @@ this document fetched or checked for liveness — **every URL here is recorded a
 archived corpus and is unverified.** Given the malformed-link rate found in §1.3, treat them as
 citations to check, not as working links.
 
+**This project already answered the acquisition question, and answered it better.** The 58 exemplars
+at `data/reference_pack/exemplars/` are **metadata-only**: each carries `license_category:
+"all-rights-reserved"` as a conservative default and `local_media_path: null`, with no video file
+downloaded or persisted anywhere in the repo. The catalogue captures source URL, creator, platform,
+retrieval date, award/showcase provenance, and scores — everything needed to reason about a
+reference without holding a copy of it. `data/reference/videos/` is therefore redundant with an
+existing, better-designed mechanism, and `data/reference/` should probably not acquire media at all.
+See §7 question 1.
+
 ---
 
 ## 7. Open questions
 
-1. **Should `data/reference/` exist at all?** It has no spec. `.gitignore` is its only authority,
-   and the one spec in this repo (`reference-pack`) is still DRAFT. Per the Spec-Driven Workflow, a
-   tracked deliverable here would normally need a spec first. This file is written as findings, not
-   as the "curated catalogue" the ignore rule describes.
-2. **Should reference videos be acquired?** If yes: which, under what licence reading, and does the
-   no-persisted-frames rule extend to third-party video files held locally? Note `.gitignore`
-   already anticipates the answer is yes (`/data/reference/videos/*`) while the reference-pack spec
-   Open Question #1 leaves the licence scope of the prohibition undecided.
-3. **Should the `.gitignore` comment be corrected?** It describes `REGISTRY.md` as "the curated
-   catalogue". As of this file, that description is inaccurate.
-4. **Should the archived corpus be retained?** Its measured content is one video URL, 33 reproducible
-   ffprobe numbers, and two confirmed lineages into this project's own footage. Everything else is
-   catalogued here.
+**Revised 2026-07-28 after `.git` repair — three of the original four questions are now answered.**
+
+1. **Should `data/reference/` exist at all? — Probably not, as a media store.**
+   `data/reference_pack/exemplars/` already does the job, metadata-only, with a licence discipline
+   this directory does not have (§6). Recommend: keep `REGISTRY.md` here as the archived-corpus
+   census it is, delete `data/reference/videos/` and its `.gitignore` rules, and fold any future
+   reference work into `exemplars/`. **Needs a decision — not actioned.**
+2. **Should reference videos be acquired? — Answered: no, and the project already decided this.**
+   Exemplars carry `local_media_path: null` and a conservative all-rights-reserved default. No
+   media download is required or wanted.
+3. **Should the `.gitignore` comment be corrected? — Yes, and it is now doubly inaccurate.** It
+   describes `REGISTRY.md` as "the curated catalogue" (it is a census) and reserves
+   `data/reference/probe/` for measurements that `exemplars/` already covers. **Not actioned** —
+   `.gitignore` is load-bearing and was already edited three times today; batching another change
+   into the same session without review would be exactly the drift this repo guards against.
+4. **Should the archived corpus be retained?** Its salvageable content is one video URL, 33
+   reproducible ffprobe numbers, and two confirmed lineages into this project's own footage (§4).
+   Everything else is catalogued here. Retention is a storage decision, not an epistemic one.
+
+---
+
+## 9. How the archived corpus compares to this project's own catalogue
+
+The recovery of `data/reference_pack/exemplars/` makes a direct comparison possible, and it is the
+sharpest available statement of what this project does differently.
+
+| | Archived `_p-ai-drone-video` corpus | This project's `exemplars/` |
+|---|---|---|
+| Specific reference videos | **1** | **58** |
+| Source URL per entry | no | yes |
+| Creator identified | 4 handles, no linked work | yes, with real-name attribution |
+| Licence position | none stated | `all-rights-reserved` conservative default, per entry |
+| Media held locally | n/a | **none** — `local_media_path: null` by policy |
+| Provenance of scores | n/a | flagged `manually_estimated` where estimated |
+| Derived values | uncited constants | `composite_score` computed by calling this repo's own `compute_composite_score` |
+| Independent verification | none | multi-source (e.g. YouTube oEmbed + AirVuz + uavcoach for `johnnyfpv-miami-freestyle-fpv`) |
+
+The exemplar entries do the thing the archived corpus never does: they **distinguish what was
+measured from what was estimated, and say so in the artifact**. One entry explicitly declines to
+guess a runtime — "rather than estimate a plausible length for a freestyle FPV edit (typically 2-5
+minutes by genre convention), this field stays unset" — which is the exact discipline whose absence
+§2 documents across ~978 archived claims.
+
+The practical consequence: **the archived corpus is not a source this project needs.** Its two
+confirmed lineages (§4) are useful as forensics on footage this project already owns. Nothing else
+in it should feed a threshold, because `exemplars/` plus `data/reference_pack/probe/` already supply
+better-grounded material for the same purpose.
 
 ---
 
