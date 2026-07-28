@@ -36,13 +36,23 @@ extraction, reel stitching, and reference-pack curation." Three capabilities:
 ~2,060 LOC. Recovered 2026-07-28 from `origin/main` (commit `8163d4b`, "implement Milestone 1
 of all three drone-video-ai capabilities").
 
-**They cannot be run or tested in this environment, and that is a separate problem from
-existence.** `.venv/` is an empty husk (`pyvenv.cfg` only, no `bin/`); `pytest`, `cv2`
-(`opencv-contrib-python`), `scenedetect`, and `opentimelineio` are all absent from system
-`python3` (`numpy` is present). The two console scripts are therefore **not runnable here**, and
-no test in `tests/` has been executed in this environment. Per the toolchain constraint below,
-do not `pip install` to change this without the user's decision. **Nothing in `src/` has been
-verified by execution — treat all claims about its behaviour as unconfirmed.**
+**`src/` IS NOW RUNNABLE AND ITS TESTS PASS** (2026-07-28, user-authorised relaxation of the
+no-`pip install` rule, scoped to a project-local `.venv` only).
+
+- **Interpreter trap:** system `python3` is **3.9.6**, but `pyproject.toml` requires `>=3.10`, so
+  `pip install -e .` fails with "requires a different Python". The venv must be built on 3.10+.
+  Working recipe: `uv venv --python 3.12 --clear .venv && VIRTUAL_ENV=.venv uv pip install -e ".[dev]"`.
+- **The opencv conflict `pyproject.toml` documents is real and reproduces every time.** Installing
+  the project pulls BOTH `opencv-python` (via `scenedetect`) and `opencv-contrib-python`. Apply
+  that file's own documented fix afterwards, and check the CONCRETE FACTORY
+  (`cv2.saliency.StaticSaliencySpectralResidual_create`), not just `hasattr(cv2, "saliency")`.
+  Do NOT `--no-deps` reinstall before the project install has succeeded — that strips `numpy`.
+- **`93 passed in 20.31s`.** Both console scripts run.
+
+**But green tests do NOT mean validated against this footage.** `pyproject.toml` declares an
+`integration` marker for "tests that use real `data/raw/` sample footage"; **zero tests use it**
+and none reference real footage. All 93 are unit tests over synthetic fixtures. The pipeline was
+first run against real corpus footage on 2026-07-28 — see "Audit findings" below.
 
 **What does exist and is real, working, and verified:**
 
@@ -179,6 +189,51 @@ requirements-promptlab.txt   # INHERITED claude-template maintainer content — 
          # Remote: https://github.com/m-deane/drone-video-ai (public). Local main is 1 commit
          # AHEAD of origin/main — the reconciliation commit has NOT been pushed.
 ```
+
+## Audit findings — `src/` vs the measured pack (2026-07-28, first ever comparison)
+
+`src/` and `data/reference_pack/` were built independently and **had never been compared**. When
+they were, the headline is blunt: **of 85 constants audited across the scoring and `common/`
+groups, ZERO trace to a measurement in `data/reference_pack/`.** The scoring group's verdict:
+"pack and scorers were built as if the other did not exist."
+
+This is an orientation failure, not a sloppiness failure — the code is careful, heavily commented,
+and several constants are honestly labelled as arbitrary-but-defensible. But the cost is concrete
+and was **confirmed by execution**, not inferred:
+
+1. **No scorer crops the letterbox.** Every pack measurement uses `crop=1280:544:0:88`; no scorer
+   crops at all (grep: zero crop logic in `highlight_extraction/`). Measured effect on
+   `split_001_s70.mp4`: cropping the bars off moves **exposure +0.2444** — the pack's measured
+   letterbox `content_cost` is **24.4%**. Letterboxed exposure is exactly `1 − 0.2444 = 0.7556`:
+   the bars (measured luma 16) are counted as clipped pixels, so exposure scores the mask, not the
+   picture. Composition moves +0.0336. Constant ≈ −0.061 composite penalty on the 4 split-family
+   files versus the vertical family.
+2. **Scores are rank, not quality.** `min_max_normalize` (`scoring_sharpness.py:63`) returns
+   `[1.0]` for ANY single-element input — verified: `[0.02] -> [1.0]` and `[123.4] -> [1.0]`. At
+   n=2 it forces `{1.0, 0.0}`. The pack proved every corpus file is single-shot, and the live run
+   produced `total_segments = 1` on 4 of 5 files, so `sharpness` and `motion_smoothness` are `1.0`
+   by construction and carry no quality information. `exposure` and `composition` are absolutely
+   normalised and therefore unaffected.
+3. **Under-exposure detection is structurally unreachable.** `LOW_CLIP_THRESHOLD = 5`
+   (`scoring_exposure.py:21`) against a corpus whose measured YMIN is ≥14 everywhere. Half the
+   exposure scorer cannot fire on this footage.
+4. **`MAX_HORIZON_TILT_DEGREES = 20.0`** is justified in-code as "a professionally-composed aerial
+   rarely exceeds this" — precisely the general-knowledge-of-drone-footage derivation the
+   Constitution prohibits. No measured tilt distribution exists in the pack.
+5. **The highlight manifest cannot distinguish a fabricated value from a measured one.**
+   `ffprobe.py` silently substitutes `0` on its failure path, and `from_dict` default-fills a
+   `normalization` method description for work that never ran. This project solved this problem
+   twice already — `editorial_style.json`'s `confidence` field and
+   `reference_pack/schema.py`'s `scores_provenance` — and the pipeline's own output schema is the
+   one artifact that does not.
+
+**A positive result worth keeping:** PySceneDetect's `ContentDetector`, running inside the real
+pipeline, reported `scenes_detected = 0` on every corpus file — independently reproducing the
+pack's zero-hard-cuts finding with a completely different tool from the `ffmpeg scdet` the pack
+used. That is the strongest confirmation the pack's central claim has.
+
+Full per-constant tables: `.claude/checkpoints/threshold-audit-2026-07-28/`.
+**None of these findings has been fixed.** Each fix is a design decision, not a cleanup.
 
 **Why the reference pack exists.** Capability 1 scores highlights, Capability 2 stitches
 reels; both need thresholds. An invented threshold is exactly the "invented constant" the
