@@ -123,7 +123,7 @@ class CandidateBoundaries:
 
 # Default normalization-method descriptions, per plan.md's "normalization" block.
 DEFAULT_NORMALIZATION = {
-    "sharpness": "in-video min-max over sampled frames -> [0,1]",
+    "sharpness": "WITHIN-FILE RANK: in-video min-max over sampled frames -> [0,1]; null when undefined (n<2, or all segments equal). NOT comparable across files -- use sharpness_raw for that.",
     "exposure": "1 - (clipped-pixel fraction from histogram) -> [0,1]",
     "motion_smoothness": "in-video min-max over inverse jerk magnitude -> [0,1]",
     "composition": (
@@ -137,12 +137,17 @@ DEFAULT_NORMALIZATION = {
 
 @dataclass
 class SegmentScores:
-    sharpness: float
-    exposure: float
-    motion_smoothness: float
+    sharpness: Optional[float]        # WITHIN-FILE RANK; None when undefined
+    exposure: float                    # absolute [0,1] by construction
+    motion_smoothness: Optional[float]  # WITHIN-FILE RANK; None when undefined
     composition: Optional[float] = None  # populated with a real [0,1] score as of
     # Milestone 2 (scoring_composition.py); stays Optional[float] for backward
     # compatibility with legacy (version 2) manifests, which always had None here.
+    # Absolute, cross-file-comparable measurements. Carried alongside the ranks
+    # above so that a None rank costs no information: raw Laplacian variance and
+    # raw jerk are real measurements regardless of how many segments exist.
+    sharpness_raw: Optional[float] = None
+    motion_smoothness_raw: Optional[float] = None
 
     def to_dict(self) -> dict:
         return {
@@ -150,12 +155,16 @@ class SegmentScores:
             "exposure": self.exposure,
             "motion_smoothness": self.motion_smoothness,
             "composition": self.composition,
+            "sharpness_raw": self.sharpness_raw,
+            "motion_smoothness_raw": self.motion_smoothness_raw,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "SegmentScores":
         return cls(
             sharpness=d["sharpness"],
+            sharpness_raw=d.get("sharpness_raw"),
+            motion_smoothness_raw=d.get("motion_smoothness_raw"),
             exposure=d["exposure"],
             motion_smoothness=d["motion_smoothness"],
             composition=d.get("composition"),

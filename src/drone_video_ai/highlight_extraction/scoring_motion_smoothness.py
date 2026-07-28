@@ -9,7 +9,7 @@ segments of one video, mirroring ``scoring_sharpness.min_max_normalize``.
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -34,17 +34,22 @@ def compute_raw_jerk_magnitude(
     return float(np.mean(np.abs(segment_jerk)))
 
 
-def invert_and_normalize(raw_jerk_values: List[float]) -> List[float]:
-    """Invert (lower jerk -> higher score) then min-max normalize to [0, 1].
+def invert_and_normalize(raw_jerk_values: List[float]) -> List[Optional[float]]:
+    """Invert (lower jerk -> higher score) then rank within this video onto
+    [0,1], or return ``None`` per element where that rank is not defined.
 
-    If every segment has identical raw jerk (degenerate case), every score
-    is 1.0 -- there is no "shakier" segment to compare against.
+    Mirrors ``scoring_sharpness.min_max_normalize``'s contract exactly -- see
+    its docstring for why the degenerate cases return ``None`` rather than a
+    fabricated 1.0. Both are WITHIN-FILE RANKS and are not comparable across
+    files; callers must carry ``raw_jerk`` alongside.
     """
     if not raw_jerk_values:
         return []
+    if len(raw_jerk_values) < 2:
+        return [None] * len(raw_jerk_values)
     inverted = [-v for v in raw_jerk_values]
     lo = min(inverted)
     hi = max(inverted)
     if hi - lo < 1e-9:
-        return [1.0 for _ in inverted]
+        return [None] * len(inverted)
     return [(v - lo) / (hi - lo) for v in inverted]

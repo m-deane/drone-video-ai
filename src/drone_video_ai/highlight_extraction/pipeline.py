@@ -158,6 +158,11 @@ def run_pipeline(video_path: str, config: Optional[PipelineConfig] = None) -> Hi
             exposure=exposure_score,
             motion_smoothness=motion_smoothness_score,
             composition=composition_score,  # Milestone 2: scored (scoring_composition.py)
+            # Absolute measurements carried alongside the within-file ranks, so a
+            # null rank (single-segment file) costs no information and so
+            # Capability 2 has something cross-file-comparable to select on.
+            sharpness_raw=raw_sharpness[i],
+            motion_smoothness_raw=raw_jerk[i],
         )
 
         segment_id = f"seg_{i + 1:04d}"

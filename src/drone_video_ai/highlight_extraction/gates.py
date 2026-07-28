@@ -121,10 +121,16 @@ def evaluate_gates(
     ):
         failures.append("freezedetect")
 
-    if sharpness_score < cfg.min_sharpness_floor:
+    # A score of None means the within-file rank is UNDEFINED (single segment,
+    # or every segment identical -- see scoring_sharpness.min_max_normalize).
+    # A floor cannot be evaluated against an undefined rank, so the gate is
+    # skipped rather than fired: excluding a segment because its rank could not
+    # be computed would discard the only segment in a single-shot file, which
+    # data/reference_pack/ measured to be every file in this corpus.
+    if sharpness_score is not None and sharpness_score < cfg.min_sharpness_floor:
         failures.append("min_sharpness_floor")
 
-    if exposure_score < cfg.min_exposure_floor:
+    if exposure_score is not None and exposure_score < cfg.min_exposure_floor:
         failures.append("min_exposure_floor")
 
     return failures

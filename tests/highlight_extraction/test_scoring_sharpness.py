@@ -29,9 +29,13 @@ def test_min_max_normalize_maps_to_zero_one_range():
     assert 0.0 < normalized[1] < 1.0
 
 
-def test_min_max_normalize_degenerate_equal_values_returns_all_ones():
+def test_min_max_normalize_degenerate_equal_values_returns_all_none():
+    # CHANGED 2026-07-28: previously asserted [1.0, 1.0, 1.0]. When every segment
+    # is equally sharp the within-file rank is arbitrary, and returning 1.0
+    # asserted they were all maximal. The rank is now null; the absolute
+    # measurement is carried in SegmentScores.sharpness_raw instead.
     normalized = min_max_normalize([5.0, 5.0, 5.0])
-    assert normalized == [1.0, 1.0, 1.0]
+    assert normalized == [None, None, None]
 
 
 def test_min_max_normalize_empty_list():

@@ -63,15 +63,32 @@ def compute_raw_sharpness(
         cap.release()
 
 
-def min_max_normalize(raw_values: List[float]) -> List[float]:
-    """In-video min-max normalization to [0, 1]. If all values are equal
-    (degenerate case, e.g. a single-segment video), returns 1.0 for every
-    value rather than dividing by zero -- there is no "worse" segment to
-    compare against."""
-    if not raw_values:
-        return []
-    lo = min(raw_values)
-    hi = max(raw_values)
-    if hi - lo < 1e-9:
-        return [1.0 for _ in raw_values]
+def min_max_normalize(raw_values: List[float]) -> List[Optional[float]]:
+    """Rank ``raw_values`` within this video onto [0,1], or return ``None`` per
+    element where that rank is not defined.
+
+    This is a WITHIN-FILE RANK, not an absolute quality measure. It answers
+    "which of this video's segments is sharpest", not "is this segment sharp",
+    and values are therefore NOT comparable across files.
+
+    Returns ``None`` for every element when the rank carries no information:
+
+    - ``n < 2`` -- there is nothing to rank against. Previously this returned
+      ``[1.0]`` for ANY single value: ``[0.02] -> [1.0]`` and ``[123.4] -> [1.0]``
+      were indistinguishable. Since data/reference_pack/ measured that every
+      file in this project's corpus is a single continuous shot, that degenerate
+      case was the NORM here, not an edge case -- 20 of 20 sharpness and
+      motion_smoothness values across the 8-file corpus were saturated at 0.0 or
+      1.0.
+    - ``max == min`` -- every segment is equally sharp, so the rank is arbitrary.
+      Previously returned 1.0 for all, asserting they were all maximal.
+
+    Callers must carry the raw absolute value alongside this, so that a ``None``
+    here costs no information.
+    """
+    if len(raw_values) < 2:
+        return [None] * len(raw_values)
+    lo, hi = min(raw_values), max(raw_values)
+    if hi - lo <= 0.0:
+        return [None] * len(raw_values)
     return [(v - lo) / (hi - lo) for v in raw_values]

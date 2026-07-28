@@ -46,7 +46,9 @@ def test_smooth_pan_scores_above_jittery_motion_after_normalization(tmp_path, cl
 
 
 def test_invert_and_normalize_degenerate_equal_values():
-    assert invert_and_normalize([3.0, 3.0]) == [1.0, 1.0]
+    # CHANGED 2026-07-28: previously asserted [1.0, 1.0]; see the matching change
+    # in test_scoring_sharpness.py for the rationale.
+    assert invert_and_normalize([3.0, 3.0]) == [None, None]
 
 
 def test_invert_and_normalize_empty():
