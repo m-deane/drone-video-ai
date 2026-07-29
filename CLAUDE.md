@@ -267,7 +267,48 @@ quantises to. So `verify` can fail on byte-perfect paced renders, and passes vac
 input.
 
 Full per-constant tables: `.claude/checkpoints/threshold-audit-2026-07-28/`.
-**None of these findings has been fixed.** Each fix is a design decision, not a cleanup.
+
+### End-to-end validation run (2026-07-28/29)
+
+Findings 1 and 2 above are now FIXED (commits `0644fb7`, `bc3a499`); the rest stand.
+
+**Determinism — holds.** Three files run twice through the full highlight chain produce
+byte-identical manifests. Re-run before trusting any comparison across sessions.
+
+**The pipeline runs end-to-end and produces real deliverables.** From the four `split_*` clips —
+which `ffprobe` confirms share codec/resolution/pix_fmt/timebase (h264, 1280x720, yuv420p, 30/1,
+1/15360), Capability 2's stated precondition — `drone-stitch` renders `reel.mp4` (53.300000 s,
+1599 frames) plus a valid `.otio` (Timeline.1, one Video track, 4 clips) and a CMX3600 `.edl`
+ending `00:00:53:09`. Outputs land in `data/output/`, which `.gitignore:29` treats as
+regenerable — **so nothing there survives a clean checkout; regenerate, don't rely on it.**
+
+That 53.30 s is not a coincidence and is worth knowing about: it matches the corpus
+`manifest.json`'s own `summary.total_duration`, and the pack had *predicted* it —
+`editorial_style.json` → `cut_rhythm.hypothetical_assembly_shot_length_s` records "IF the four
+split clips were concatenated in manifest order, the assembly would run 53.30 s". The pack
+predicted the assembly years before anything could build it; this is the first time it was built.
+
+**AC2.1 byte-exactness holds, and the `verify.py` defect is now quantified.** All 450 decoded
+frame hashes of `split_001_s70.mp4` are identical to the reel's first 450 — the stream copy is
+genuinely byte-exact. But packet-level hashes (`-c copy`) differ on **38 of 450** frames, at
+indices 0, 12, 24, 36 … — and `ffprobe` puts the source's keyframes at exactly 12, 24, 36 … 444
+(37 of them), plus frame 0. Exact match. The cause is in-band SPS/PPS parameter-set re-emission at
+each keyframe by the concat demuxer: container headers change, pixels do not. So `verify.py:60`,
+comparing whole framemd5 lines, would report an **8.4% frame-mismatch rate on a byte-perfect
+render**. The audit flagged this as LIKELY; it is now CONFIRMED with a mechanism and a number.
+**Any future verification must compare decoded-frame hashes, not raw packet lines.**
+
+**Still untested:** the specific failure the audit predicted — a *paced* render whose sub-frame
+`-ss` shifts pts off the measured 30/1 grid. The hard-cut path above does not exercise it.
+
+**Cost, measured — this bounds what is practical here.** 0.4–1.2x realtime at 720p/1080p, but
+**3.7–8.1x realtime at 4K**. The 63.58 s 4K master `DJI_0355` therefore needs ~8 minutes and
+exceeded a 2-minute command timeout twice. Raw 4K masters are the pipeline's actual intended
+input, so budget for it: run them detached, never inline.
+
+**Remaining unfixed:** findings 3, 4 and 5 above (unreachable under-exposure detection,
+`MAX_HORIZON_TILT_DEGREES`, and the manifest's inability to distinguish fabricated from measured
+values in `ffprobe.py`'s failure path). Each is a design decision, not a cleanup.
 
 **Why the reference pack exists.** Capability 1 scores highlights, Capability 2 stitches
 reels; both need thresholds. An invented threshold is exactly the "invented constant" the
