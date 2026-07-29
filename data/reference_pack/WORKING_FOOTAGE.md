@@ -92,11 +92,66 @@ rarer in real shooting than the archived material implies, or this classifier's 
 thresholds below are stated so they can be challenged, not because they are validated.** Nothing
 here has been cross-checked against visual review of the clips.
 
+## 3a. What OpenCV actually hands the scorers (measured 2026-07-29)
+
+`cv2.VideoCapture` decodes these 10-bit sources to **`uint8`** — no 10-bit precision reaches any
+scorer. That much is expected. What matters is *how* the transfer curve survives:
+
+| Sample | cv2 luma min | max | mean | `_clipped_fraction` |
+|---|---:|---:|---:|---:|
+| HLG (`arib-std-b67`/bt2020) | 0–2 | **255** | ~88 | 0.0011 – 0.0018 |
+| SDR (`bt709`) | 5–8 | 202–233 | 77–99 | **0.000000** |
+
+The HLG samples reach 255 and register clipping; the SDR samples never approach
+`HIGH_CLIP_THRESHOLD = 250` at all. This is consistent with HLG being decoded as though it were
+bt709 — HLG's highlight roll-off encodes a much wider range, and reading it flat pushes highlights
+to white.
+
+**If that reading is right, `exposure` is systematically biased against HLG footage**, which is 77%
+of this library — penalising a decode artifact rather than a real exposure fault. **It is a
+hypothesis, not yet established.** The clean control (decode with a proper HLG→bt709 tonemap and
+re-measure) could not be run: this ffmpeg build has no `zscale` filter, so the
+`zscale,tonemap,zscale` chain fails with "No such filter". Confirming or refuting it needs either
+an ffmpeg built with libzimg or an equivalent tonemap path.
+
+Note this cuts the opposite way from the corpus finding. There, `LOW_CLIP_THRESHOLD = 5` was
+unreachable (measured YMIN ≥ 14) so the low half of the scorer was inert. Here the *high* half
+fires — possibly spuriously.
+
+## 3b. Letterbox — absent here
+
+Measured from decoded mid-clip frames on both an HLG and an SDR sample: zero rows above or below
+the picture fall under the luma-24 limit the pack's `cropdetect` recipe uses. Row means span
+59.3–175.9 (HLG) and 46.6–163.3 (SDR). **This footage is not letterboxed; the full 3840×2160 frame
+is picture.**
+
+So `letterbox.py`'s crop correctly degrades to a whole-frame no-op here. The fix matters for the
+corpus's split family and is harmless on this material — which is the intended behaviour, and is
+already guarded by the `test_vertical_family_is_not_letterboxed` integration test.
+
 ## 4. Cost
 
 Measured pipeline throughput: **0.4–1.2× realtime at 720p/1080p, 3.7–8.1× at 4K.** At 111.4 minutes
 of 4K, a single full pass is **6.9–15.0 hours**, and there is no batch mode — the CLI takes one file.
 Plan for downscaled analysis and parallelism before attempting a real run.
+
+**4K hevc decode is the binding constraint, and it blocks measurement itself, not just the
+pipeline.** Established the hard way on 2026-07-29: `ffmpeg signalstats` over 3 s of one clip, and
+`cropdetect` over 2 s of one clip, both exceeded a 2-minute wall clock. These are the pack's own
+standard recipes — the ones every existing measurement in `data/reference_pack/` was produced with.
+They do not complete on this material at native resolution.
+
+Practical consequences, all learned by hitting them:
+
+- **Never run two 4K decode jobs concurrently.** They contend for the same cores and both slow to a
+  crawl; one job at a time finishes sooner than two in parallel.
+- **Decode a frame and measure it in NumPy** where an ffmpeg filter would otherwise walk the whole
+  stream. The letterbox check in §3b took milliseconds this way after `cropdetect` had timed out
+  entirely on the same question.
+- **Any real characterisation of this footage needs downscaled proxies**, and the proxy step is
+  itself a 4K decode, so it must be batched and run detached.
+
+This is the single largest practical obstacle between the current pipeline and this footage.
 
 ## 5. Not yet measured
 
