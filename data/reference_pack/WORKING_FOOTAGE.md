@@ -157,6 +157,70 @@ So `letterbox.py`'s crop correctly degrades to a whole-frame no-op here. The fix
 corpus's split family and is harmless on this material — which is the intended behaviour, and is
 already guarded by the `test_vertical_family_is_not_letterboxed` integration test.
 
+## 3c. Which signals actually discriminate on this footage (2026-07-29)
+
+Measured on 15 720p 3-second proxy segments sampled across the library, 3 frames each. The question
+is not whether a signal is principled but whether it **separates clips at all** — a signal returning
+the same value everywhere carries no information however sound its derivation.
+
+**The signal that reaches the composite today:**
+
+| | min | max | span | exactly 1.0 |
+|---|---:|---:|---:|---:|
+| `exposure` (= 1 − clipped_fraction) | 0.9824 | 1.0000 | **0.0176** | 5 / 15 |
+
+**`exposure` occupies 1.8% of the [0,1] scale it is weighted 25% on.**
+
+**Candidates, by raw spread (p90/p10):**
+
+| Candidate | ratio |
+|---|---:|
+| `sharpness_laplacian` (current) | **10.48×** |
+| `edge_density` (Canny fraction) | 8.66× |
+| `tenengrad` (Sobel energy) | 8.33× |
+| `saturation_mean` (HSV S) | **4.78×** |
+| `contrast_std` (luma σ) | 1.83× |
+| `midtone_p50` | 1.76× |
+| `dynamic_range_p1_p99` | 1.60× |
+
+**Three of the four highest-spread candidates are the same signal wearing different hats.** Spearman
+rank correlation across the 15 clips:
+
+```
+sharpness_laplacian ~ tenengrad      rho = +0.94
+sharpness_laplacian ~ edge_density   rho = +0.93
+tenengrad           ~ edge_density   rho = +0.94
+```
+
+Adding `tenengrad` or `edge_density` alongside `sharpness` would add weight, not information. No
+other pair exceeded |rho| = 0.8, so `saturation_mean`, `contrast_std`, `midtone_p50` and
+`dynamic_range_p1_p99` are mutually independent and independent of sharpness.
+
+**What that suggests** — as a starting point for a spec, not a decision:
+
+- Keep **one** detail signal. `sharpness_laplacian` already has the widest spread; its rivals are
+  redundant with it.
+- **`saturation_mean`** is the strongest genuinely independent addition: 4.78× spread, uncorrelated
+  with detail.
+- One tonal signal from `contrast_std` / `midtone_p50` / `dynamic_range_p1_p99`. All three are
+  modest (1.6–1.8×) and mutually independent; nothing here says which.
+- **Retire clipping-based exposure.** It measures sensor clipping, which this footage does not
+  exhibit.
+- **Telemetry** (§3) is the one signal with both large spread and a physical meaning: ground speed
+  spans 0.00–20.61 m/s across 149 clips, and it measures the thing optical flow was reaching for.
+
+### Caveats on this measurement, stated so it is not over-read
+
+- **n = 15**, not the 24 intended: 9 proxy encodes failed silently and were not retried. The sample
+  skews HLG (the queue was 18 HLG / 6 SDR before failures).
+- **3 frames per clip** from one 3-second mid-clip window. This measures between-clip separation,
+  and says nothing about within-clip variation, which is what segment scoring actually needs.
+- **`sharpness_laplacian` is not scale-invariant.** These ratios come from 720p proxies; absolute
+  values will differ at 4K, so the spread is comparable but the numbers are not transferable.
+- Two discrimination metrics were tried and discarded first — IQR/median, then p90/p10 — because
+  both divide by a near-zero quantity and reported the *most* inert signal as the most
+  discriminating. Zero-inflated signals need the score-span framing used above, not a ratio.
+
 ## 4. Cost
 
 Measured pipeline throughput: **0.4–1.2× realtime at 720p/1080p, 3.7–8.1× at 4K.** At 111.4 minutes

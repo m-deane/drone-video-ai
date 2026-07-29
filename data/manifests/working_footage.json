@@ -144,5 +144,40 @@
     "exposure_exactly_1.0": "19/28 clips (68%)",
     "finding": "HLG-vs-SDR bias hypothesis REFUTED as material: direction real, magnitude negligible (<=0.0017 on composite). The actionable defect is that exposure is near-constant -- LOW_CLIP_THRESHOLD=5 / HIGH_CLIP_THRESHOLD=250 measure sensor clipping, which this footage does not exhibit, while carrying 25% of composite weight.",
     "unresolved": "clean HLG->bt709 tonemap control not run; this ffmpeg build lacks the zscale filter"
+  },
+  "signal_discrimination": {
+    "method": "15 x 720p 3s proxy segments, 3 frames each, sampled across the library",
+    "confidence": "measured",
+    "n": 15,
+    "intended_n": 24,
+    "note": "9 proxy encodes failed silently; sample skews HLG",
+    "exposure_score_span": {
+      "min": 0.9824,
+      "max": 1.0,
+      "span": 0.0176,
+      "exactly_1.0": "5/15",
+      "finding": "occupies 1.8% of the [0,1] scale it is weighted 25% on"
+    },
+    "candidate_spread_p90_over_p10": {
+      "sharpness_laplacian": 10.48,
+      "edge_density": 8.66,
+      "tenengrad": 8.33,
+      "saturation_mean": 4.78,
+      "contrast_std": 1.83,
+      "midtone_p50": 1.76,
+      "dynamic_range_p1_p99": 1.6
+    },
+    "redundancy_spearman": {
+      "sharpness~tenengrad": 0.94,
+      "sharpness~edge_density": 0.93,
+      "tenengrad~edge_density": 0.94,
+      "note": "no other pair exceeded |rho|=0.8; saturation/contrast/midtone/dynamic_range are mutually independent and independent of sharpness"
+    },
+    "caveats": [
+      "n=15 not 24",
+      "3 frames from one mid-clip window: between-clip separation only, says nothing about within-clip variation which is what segment scoring needs",
+      "sharpness_laplacian is NOT scale-invariant; values from 720p proxies are not transferable to 4K",
+      "two ratio metrics (IQR/median, p90/p10) were tried and discarded: both divide by a near-zero quantity and ranked the most inert signal as most discriminating"
+    ]
   }
 }
