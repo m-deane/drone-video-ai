@@ -298,8 +298,20 @@ comparing whole framemd5 lines, would report an **8.4% frame-mismatch rate on a 
 render**. The audit flagged this as LIKELY; it is now CONFIRMED with a mechanism and a number.
 **Any future verification must compare decoded-frame hashes, not raw packet lines.**
 
-**Still untested:** the specific failure the audit predicted — a *paced* render whose sub-frame
-`-ss` shifts pts off the measured 30/1 grid. The hard-cut path above does not exercise it.
+**The audit's predicted `verify` failure did NOT reproduce — tested 2026-07-29.** A paced render
+(`--target-duration 40.0` against the 53.3 s manifest) produces genuinely off-grid timecodes
+(`out_tc` 11.257036 / 22.514071 / 28.742964, none on the 30/1 grid) — the exact sub-frame `-ss`
+condition predicted to break verification. It passed. Two reasons, both worth knowing before
+anyone "fixes" this:
+
+- `verify` is **not vacuous**: both the hard-cut and paced renders generate 4 real
+  `FrameRangeCheck`s covering every stream-copy region.
+- `_framemd5_hashes` (`verify.py:28`) runs ffmpeg **without `-c copy`**, so it hashes DECODED
+  frames, not packets. That makes it immune to the keyframe SPS/PPS re-emission documented above.
+  **Do not "optimise" it to `-c copy`** — that would introduce the 8.4% false-failure rate.
+
+The concern stays theoretically reachable with other `-ss` values (the audit cited 5.0166 vs 5.02
+yielding different frame counts), but it is unreproduced on this corpus.
 
 **Cost, measured — this bounds what is practical here.** 0.4–1.2x realtime at 720p/1080p, but
 **3.7–8.1x realtime at 4K**. The 63.58 s 4K master `DJI_0355` therefore needs ~8 minutes and
