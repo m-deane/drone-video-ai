@@ -1,0 +1,137 @@
+{
+  "schema": {
+    "name": "working_footage",
+    "version": 1,
+    "generated_utc_date": "2026-07-29",
+    "subject": "00-WORKING/Videos/ \u2014 July 2026 Pamir shoot",
+    "toolchain": "ffprobe 8.1.2 + python3 stdlib",
+    "note": "Container/timing/colour measured on all clips. signalstats, scdet and cropdetect NOT run \u2014 see WORKING_FOOTAGE.md section 5."
+  },
+  "counts": {
+    "video_clips": 153,
+    "srt_sidecars": 150,
+    "clips_with_usable_gps": 149
+  },
+  "corpus_invariant_tests": {
+    "codec": {
+      "pack_value": "h264",
+      "actual": {
+        "hevc": 150,
+        "h264": 3
+      },
+      "holds": false
+    },
+    "frame_rate": {
+      "pack_value": "30/1",
+      "actual": {
+        "60000/1001": 150,
+        "25/1": 3
+      },
+      "holds": false
+    },
+    "pix_fmt": {
+      "pack_value": "yuv420p (8-bit)",
+      "actual": {
+        "yuv420p10le": 150,
+        "yuv420p": 3
+      },
+      "holds": false
+    },
+    "color_range": {
+      "pack_value": "tv",
+      "actual": {
+        "tv": 153
+      },
+      "holds": true
+    },
+    "audio_streams": {
+      "pack_value": 0,
+      "actual": {
+        "0": 153
+      },
+      "holds": true
+    }
+  },
+  "measured": {
+    "resolution": {
+      "3840": 153,
+      "2160": 153
+    },
+    "color_transfer": {
+      "arib-std-b67": 118,
+      "bt709": 35
+    },
+    "color_primaries": {
+      "bt2020": 118,
+      "bt709": 35
+    },
+    "duration_s": {
+      "min": 0.07,
+      "median": 35.69,
+      "max": 161.23,
+      "total_min": 111.4
+    },
+    "bit_rate_mbps": {
+      "min": 125,
+      "median": 125,
+      "max": 376
+    }
+  },
+  "telemetry": {
+    "schema_fields": [
+      "iso",
+      "shutter",
+      "fnum",
+      "ev",
+      "color_md",
+      "focal_len",
+      "latitude",
+      "longitude",
+      "rel_alt",
+      "abs_alt",
+      "ct"
+    ],
+    "gimbal_angles_present": false,
+    "ground_speed_ms": {
+      "min": 0.0,
+      "median": 12.96,
+      "max": 20.61
+    },
+    "abs_alt_m": {
+      "min": 2235.0,
+      "median": 3916.0,
+      "max": 5067.0
+    },
+    "color_md": {
+      "hlg": 117,
+      "dlog_m": 32
+    },
+    "motion_classification": {
+      "method": "GPS haversine speed + bearing-delta turn rate, 0.5s sampling",
+      "thresholds": {
+        "static_speed_ms": 0.5,
+        "orbit_turn_deg_s": 2.0,
+        "orbit_consistency": 0.7,
+        "vertical_ms": 1.0
+      },
+      "confidence": "inferred \u2014 NOT cross-checked against visual review",
+      "counts": {
+        "TRANSLATE": 82,
+        "ASCEND/DESCEND": 58,
+        "STATIC/HOVER": 8,
+        "ORBIT": 1
+      }
+    }
+  },
+  "cost": {
+    "measured_realtime_multiple_4k": [
+      3.7,
+      8.1
+    ],
+    "single_pass_hours": [
+      6.9,
+      15.0
+    ],
+    "batch_mode_exists": false
+  }
+}
