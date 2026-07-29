@@ -133,5 +133,16 @@
       15.0
     ],
     "batch_mode_exists": false
+  },
+  "exposure_signal": {
+    "method": "cv2 decode -> BGR2GRAY -> scoring_exposure._clipped_fraction, 2 frames per clip, 28 clips (14 HLG / 14 SDR)",
+    "confidence": "measured",
+    "hlg_clips_with_any_clipping": "8/14",
+    "sdr_clips_with_any_clipping": "1/14",
+    "max_clipped_fraction_anywhere": 0.006681,
+    "worst_composite_impact_at_weight_0.25": 0.00167,
+    "exposure_exactly_1.0": "19/28 clips (68%)",
+    "finding": "HLG-vs-SDR bias hypothesis REFUTED as material: direction real, magnitude negligible (<=0.0017 on composite). The actionable defect is that exposure is near-constant -- LOW_CLIP_THRESHOLD=5 / HIGH_CLIP_THRESHOLD=250 measure sensor clipping, which this footage does not exhibit, while carrying 25% of composite weight.",
+    "unresolved": "clean HLG->bt709 tonemap control not run; this ffmpeg build lacks the zscale filter"
   }
 }

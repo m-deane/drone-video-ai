@@ -107,16 +107,44 @@ The HLG samples reach 255 and register clipping; the SDR samples never approach
 bt709 — HLG's highlight roll-off encodes a much wider range, and reading it flat pushes highlights
 to white.
 
-**If that reading is right, `exposure` is systematically biased against HLG footage**, which is 77%
-of this library — penalising a decode artifact rather than a real exposure fault. **It is a
-hypothesis, not yet established.** The clean control (decode with a proper HLG→bt709 tonemap and
-re-measure) could not be run: this ffmpeg build has no `zscale` filter, so the
-`zscale,tonemap,zscale` chain fails with "No such filter". Confirming or refuting it needs either
-an ffmpeg built with libzimg or an equivalent tonemap path.
+### The bias hypothesis, tested at scale — and largely REFUTED
 
-Note this cuts the opposite way from the corpus finding. There, `LOW_CLIP_THRESHOLD = 5` was
-unreachable (measured YMIN ≥ 14) so the low half of the scorer was inert. Here the *high* half
-fires — possibly spuriously.
+The three-frame samples above suggested `exposure` might be systematically biased against HLG.
+Tested across 28 clips (14 HLG, 14 SDR), two frames each:
+
+| | clips with ANY clipping | median | mean | max |
+|---|---:|---:|---:|---:|
+| HLG | **8 / 14** | 0.000000 | 0.000533 | 0.006681 |
+| SDR | **1 / 14** | 0.000000 | 0.000000 | 0.000000 |
+
+**The direction is real; the magnitude is negligible.** HLG clips do clip more often — 8 of 14
+versus 1 of 14 — but the worst clipped fraction seen anywhere is 0.0067, i.e. an exposure score of
+0.9933, which at the 0.25 composite weight moves a composite score by **0.00167**. That is not a
+systematic bias worth acting on. The initial three-frame sample happened to catch clipping frames
+and overstated the effect; the median HLG clip clips exactly as much as the median SDR clip, which
+is to say not at all.
+
+### The finding that replaces it, and it is worse
+
+**`exposure` returns exactly 1.0 on 19 of 28 clips (68%), and is within 0.7% of 1.0 on all 28.**
+
+A signal carrying **25% of the composite weight** discriminates essentially nothing on this
+footage. This is not new behaviour — the audit recorded the same pattern on the 8-file corpus
+("exposure is a near-constant signal holding 25% of the composite weight") — but it now generalises
+to the real library, for a different reason. On the corpus the *low* threshold was unreachable
+(measured YMIN ≥ 14). Here both tails are effectively unreachable: aerial footage at altitude,
+correctly exposed, simply does not put pixels at ≤5 or ≥250.
+
+So the actionable defect is not the HLG transfer curve. It is that `LOW_CLIP_THRESHOLD = 5` /
+`HIGH_CLIP_THRESHOLD = 250` measure *sensor clipping*, an failure mode this footage does not
+exhibit, while contributing a quarter of every score. A discriminating exposure signal would need
+to measure something else entirely — histogram spread, mid-tone placement, or dynamic-range usage.
+
+A residual caveat, unresolved: the clean control (decode with a proper HLG→bt709 tonemap and
+re-measure) still could not be run — this ffmpeg build has no `zscale` filter, so the
+`zscale,tonemap,zscale` chain fails with "No such filter". That control would settle whether the
+small HLG excess is a decode artifact or real. Given the measured magnitude, it is no longer
+urgent.
 
 ## 3b. Letterbox — absent here
 
