@@ -47,12 +47,16 @@ no-`pip install` rule, scoped to a project-local `.venv` only).
   that file's own documented fix afterwards, and check the CONCRETE FACTORY
   (`cv2.saliency.StaticSaliencySpectralResidual_create`), not just `hasattr(cv2, "saliency")`.
   Do NOT `--no-deps` reinstall before the project install has succeeded — that strips `numpy`.
-- **`93 passed in 20.31s`.** Both console scripts run.
+- **`109 passed in 152.59s`** on the SSD (2026-08-01): 98 unit + 11 integration. It was
+  `93 passed in 20.31s` on the internal disk before the integration suite existed — the suite
+  grew and the disk got slower; both matter when reading that number. Both console scripts run.
 
-**But green tests do NOT mean validated against this footage.** `pyproject.toml` declares an
-`integration` marker for "tests that use real `data/raw/` sample footage"; **zero tests use it**
-and none reference real footage. All 93 are unit tests over synthetic fixtures. The pipeline was
-first run against real corpus footage on 2026-07-28 — see "Audit findings" below.
+**Green tests now DO include real footage, for 11 of 109.** `pyproject.toml` declares an
+`integration` marker for "tests that use real `data/raw/` sample footage". Until 2026-07-28
+**zero tests used it**; `tests/integration/` now holds 11 that do, asserting pack-measured
+numbers against `data/raw/corpus/`. They **skip** — rather than fail — when that gitignored
+mirror is absent *or incomplete*, so a fresh clone runs 98 unit tests and reports green having
+touched no footage at all. Check which you ran before citing a pass as validation.
 
 **What does exist and is real, working, and verified:**
 
@@ -131,17 +135,30 @@ shasum -a 256 /Users/mac/Documents/photography-WORKFLOW-local/00-assets/drone-vi
 # producing wrong output and have already shipped bad artifacts in this pack's history.
 ```
 
-`pyproject.toml` declares `pytest>=8.0` as the sole dev dependency and a `testpaths =
-["tests"]` / `integration` marker convention ("slower tests that use real `data/raw/` sample
-footage") — but `tests/` does not exist, so there is currently nothing to run `pytest`
-against. The `data/raw/` marker text is itself the grounding for where consolidated local
-footage should live if you set that up (see the source-footage table above).
+```bash
+# The test suite -- CORRECTED 2026-08-01; this section used to say tests/ did not exist
+.venv/bin/python -m pytest -q                  # everything: 109 passed (~2.5 min on the SSD)
+.venv/bin/python -m pytest -q -m integration   # the 11 real-footage tests only
+.venv/bin/python -m pytest -q -m "not integration"   # the 98 unit tests, no footage needed
 
-There is **no build, lint, or CI command** in this repo yet — `src/` doesn't exist. The
-Quality Gates in `.claude/CLAUDE.md` (bash -n, hookify cross-reference checks,
-`sync-claude-template.sh` dry-run, hookify routing tests) are inherited from `claude-template`
-and apply to `.claude/` scaffold edits, not to this project's own (currently nonexistent)
-code.
+# Re-check that the suite actually guards the fixes it claims to (mutation harness)
+H=.claude/checkpoints/session-2026-08-01/harness
+PYTHONPATH=$H MUTANT=letterbox .venv/bin/python -m pytest -q -m integration -p mutants
+PYTHONPATH=$H MUTANT=rank      .venv/bin/python -m pytest -q -m integration -p mutants
+# each must fail EXACTLY ONE test; see that directory's README.md for expected output
+```
+
+`pyproject.toml` declares `pytest>=8.0` as the sole dev dependency and a `testpaths =
+["tests"]` / `integration` marker convention. Note it sets no `addopts`, so a plain `pytest`
+runs the integration suite too — cheap here, but the design targets 4 K masters at 3.7–8.1x
+realtime, so name the marker explicitly when that matters (review-tests P3-T8).
+
+There is **no lint or CI command** in this repo — no linter is configured and nothing runs the
+suite automatically, so the mutation harness above is the only thing standing between a
+deleted assertion and a silently unguarded fix. The Quality Gates in `.claude/CLAUDE.md`
+(bash -n, hookify cross-reference checks, `sync-claude-template.sh` dry-run, hookify routing
+tests) are inherited from `claude-template` and apply to `.claude/` scaffold edits, not to this
+project's own code.
 
 ## Architecture
 
@@ -151,7 +168,9 @@ src/drone_video_ai/            # RECOVERED 2026-07-28 from origin/main — 28 fi
 ├── highlight_extraction/      # segmentation, motion, gates, weights, composite, 4x scoring_*, cli
 ├── reel_stitching/            # otio_export, pacing, color_pinning, render, verify, edit_manifest, cli
 └── reference_pack/            # schema.py, storage.py
-tests/                         # RECOVERED — 22 files, ~2,060 LOC. NOT RUNNABLE HERE (no pytest)
+tests/                         # 25 .py files. RUNNABLE: 109 passed (98 unit + 11 integration)
+└── integration/               # the only tests that touch real footage; skip if data/raw/ is
+                               # absent OR incomplete (both states handled since 2026-08-01)
 
 data/
 ├── reference_pack/          # the built deliverable — see "What each artifact means" in its own README
@@ -201,8 +220,11 @@ This is an orientation failure, not a sloppiness failure — the code is careful
 and several constants are honestly labelled as arbitrary-but-defensible. But the cost is concrete
 and was **confirmed by execution**, not inferred:
 
-0. **THE BIG ONE — segmentation is inert on 6 of 8 corpus files.** `split_segments`
-   (`segmentation.py:135`) is greedy on `chosen = max(within_max)`: it takes the FARTHEST
+0. **THE BIG ONE — segmentation is inert on 6 of 8 corpus files. FIXED 2026-08-01** — see
+   "Finding 0, closed" below this list; the diagnosis is kept verbatim because it is what the
+   fix was measured against. `split_segments`
+   (`segmentation.split_segments`, then at line 135) was greedy on `chosen = max(within_max)`:
+   it took the FARTHEST
    boundary that still fits inside `max_duration`. So whenever the whole file fits inside
    `max_duration`, it returns exactly one segment spanning the file and **discards every interior
    boundary it just computed**. Verified on `split_001_s70.mp4`: the pipeline discovers 12 interior
@@ -268,9 +290,56 @@ input.
 
 Full per-constant tables: `.claude/checkpoints/threshold-audit-2026-07-28/`.
 
+### Finding 0, closed (2026-08-01)
+
+`split_segments` now takes the **nearest** boundary at least `min_duration` away rather than
+the farthest one within `max_duration`, and folds a sub-`min_duration` tail into its
+predecessor where that stays inside `max_duration`. `DEFAULT_DURATION_PROFILE` is unchanged, so
+spec AC1.4's 2–15 s window still stands — the defect was the selection rule, not the cap.
+
+Measured over the whole 6-clip corpus mirror before the change (union-boundary sets computed by
+the real pipeline, then both rules evaluated over them):
+
+| clip | duration | union boundaries | farthest (old) | nearest (new) |
+|---|---|---|---|---|
+| `split_003_s66` | 8.3 s | 9 | **1** | 4 |
+| `split_001_s70` | 15.0 s | 14 | **1** | 6 |
+| `split_002_s69` | 15.0 s | 14 | **1** | 5 |
+| `split_004_s65` | 15.0 s | 15 | **1** | 6 |
+| `instagram_reel_test` | 27.1 s | 27 | 2 | 12 |
+| `viral_test_v2` | 14.6 s | 15 | **1** | 6 |
+
+Every new segment falls inside `[2.0, 15.0]`; none violates either bound. **Zero scene
+boundaries were detected in any of the six clips** — every boundary is a motion-derivative
+minimum, which independently reproduces the pack's zero-hard-cuts finding a third time, now
+through `AdaptiveDetector` rather than `ContentDetector` or `ffmpeg scdet`.
+
+**The rule is policy, not measurement, and must not be cited as measured.** Motion minima land
+1–1.5 s apart (`motion.find_local_minima_boundaries` enforces a 1.0 s gap), so inside a 2–15 s
+window *any* rule picks a segment length the footage does not determine: the old rule chose the
+maximum, this one chooses the minimum, and the pack measured no cut rhythm that would justify a
+target in between — inventing one would be the invented constant this project prohibits. The
+nearest-legal rule wins on the only ground available: it is the one that lets the capability
+work. `segmentation.py`'s docstring carries this reasoning and the table above.
+
+First real ranking this corpus has ever produced — `drone-highlights` on `split_003_s66.mp4`
+with stock defaults, 4 segments:
+
+| segment | span | sharpness | motion_smoothness | exposure | composition | composite |
+|---|---|---|---|---|---|---|
+| `seg_0001` | 0.000–2.033 | 1.0 | 1.0 | 1.0000 | 0.8084 | **0.9521** |
+| `seg_0002` | 2.033–4.267 | 0.3506 | 0.9403 | 1.0000 | 0.8473 | 0.7846 |
+| `seg_0003` | 4.267–6.300 | 0.0 | 0.6724 | 1.0000 | 0.8729 | 0.6363 |
+| `seg_0004` | 6.300–8.300 | 0.0769 | 0.0 | 1.0000 | 0.8922 | 0.4923 |
+
+Note `exposure` is 1.0000 on all four — three of the four signals discriminate, exposure does
+not, which is the separate signal-discrimination question `d1013a8` opened, not a segmentation
+defect.
+
 ### End-to-end validation run (2026-07-28/29)
 
-Findings 1 and 2 above are now FIXED (commits `0644fb7`, `bc3a499`); the rest stand.
+Findings 0, 1 and 2 above are now FIXED (finding 0 on 2026-08-01, see the section immediately
+above; findings 1 and 2 in commits `0644fb7`, `bc3a499`); findings 3, 4 and 5 stand.
 
 **Determinism — holds.** Three files run twice through the full highlight chain produce
 byte-identical manifests. Re-run before trusting any comparison across sessions.

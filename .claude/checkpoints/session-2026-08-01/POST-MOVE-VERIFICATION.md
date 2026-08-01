@@ -120,6 +120,42 @@ and the letterbox delta still reproduces the pack's measured 24.4% `content_cost
 decimals. The `rank` mutant's line moved `:135` → `:156`, which `harness/README.md` predicted
 in writing before the fix existed.
 
+## 3a. Audit finding 0 — fixed, in a second commit
+
+With P1-T1 out of the way, finding 0 was fixed the same session. Full record in `CLAUDE.md` →
+"Finding 0, closed (2026-08-01)"; the short version:
+
+`split_segments` now takes the **nearest** boundary at least `min_duration` away instead of
+the farthest one within `max_duration`, plus a tail-fold for a sub-`min_duration` remainder.
+`DEFAULT_DURATION_PROFILE` is untouched — spec AC1.4's 2–15 s window was never the problem,
+the selection rule was.
+
+Measured first, on all six corpus clips, by computing the real union-boundary sets and
+evaluating both rules over them: old rule → **1 segment on 5 of 6 clips** (2 on the 27.1 s
+one); new rule → 4–12 segments, every one inside `[2.0, 15.0]`. Zero scene boundaries in any
+clip — every boundary is a motion minimum, which reproduces the pack's zero-hard-cuts finding a
+third time through a third tool (`AdaptiveDetector`).
+
+The rule is **policy, not measurement**, and both the docstring and CLAUDE.md say so: motion
+minima are 1–1.5 s apart, so inside a 2–15 s window any rule picks a length the footage does
+not determine. The pack measured no cut rhythm that would justify a target in between, and
+inventing one is precisely what the Constitution forbids. Nearest-legal wins on the only
+available ground — it is the one that lets the capability function.
+
+`drone-highlights` on `split_003_s66.mp4` with stock defaults now emits 4 ranked segments,
+composite `0.9521 / 0.7846 / 0.6363 / 0.4923`. That is the first real highlight ranking this
+corpus has produced. `exposure` is 1.0000 on all four, so 3 of 4 signals discriminate —
+the open question `d1013a8` raised, not a segmentation defect.
+
+Verification: **109 passed** (98 unit + 11 integration). Three new unit tests guard the
+defect itself — the collapse case, the tail fold, and the case where folding would break
+`max_duration`. Both mutants re-run after the change and still fail **exactly one** test each
+(`letterbox` 1F/10P, `rank` 1F/10P), so the guards survived a change to the code they guard.
+
+**The P1-T1 fix paid for itself immediately**: fixing segmentation broke nothing, where before
+it would have failed three assertions in the null-rank test and looked like a regression in
+`bc3a499`.
+
 ## 4. Left open — unchanged from `SESSION-SUMMARY.md` §5 except where noted
 
 1. ~~Push to the public `origin`~~ — **done, outside this session.** Verified against the
@@ -128,8 +164,8 @@ in writing before the fix existed.
    `329e268` and `7bc7019` are all public on `github.com/m-deane/drone-video-ai`. Note that a
    second remote, `old-origin`, now points at that same URL — a rename that left both names
    in place. This session's commit is again unpushed and again needs its own yes.
-2. ~~P1-T1 before audit finding 0~~ — **done**. Audit finding 0 is now safe to fix: no test
-   depends on segmentation being inert.
+2. ~~P1-T1 before audit finding 0~~ — **done, and finding 0 itself is now fixed too.** See
+   §3a above.
 3. **Act on the three completed reviews** — unchanged. 9 findings in review-normalization
    (P1-A `composite_score` silently switching estimator, P1-B `motion_smoothness_raw` holding
    *jerk* with inverted polarity), 10 in review-letterbox, plus `design-batch.md`.

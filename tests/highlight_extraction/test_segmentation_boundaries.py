@@ -55,6 +55,40 @@ def test_split_segments_respects_min_max_duration_when_boundaries_allow():
         assert 1.0 <= duration <= 3.0
 
 
+def test_split_segments_does_not_collapse_a_span_that_fits_inside_max_duration():
+    # Audit finding 0, guarded directly. Boundaries every 1.5s across a 9s span
+    # with a 15s cap: the whole span fits inside max_duration, and the old rule
+    # (farthest boundary within max) therefore returned ONE segment (0.0, 9.0),
+    # discarding all five interior boundaries it had just been handed. Measured
+    # 2026-08-01: that made segmentation inert on 5 of the 6 corpus clips, which
+    # pinned sharpness and motion_smoothness to null and left the extractor with
+    # nothing to rank.
+    boundaries = [0.0, 1.5, 3.0, 4.5, 6.0, 7.5, 9.0]
+    segments = split_segments(boundaries, min_duration=2.0, max_duration=15.0)
+
+    assert segments == [(0.0, 3.0), (3.0, 6.0), (6.0, 9.0)]
+    for start, end in segments:
+        assert 2.0 <= (end - start) <= 15.0
+
+
+def test_split_segments_folds_a_sub_min_tail_into_its_predecessor():
+    # The last boundary sits 1.0s after the previous one, below min_duration=2.0.
+    # Emitting it alone would violate AC1.4, so it is folded backwards -- the
+    # merged span is 3.0s, still inside max_duration.
+    segments = split_segments([0.0, 2.0, 4.0, 5.0], min_duration=2.0, max_duration=15.0)
+
+    assert segments == [(0.0, 2.0), (2.0, 5.0)]
+
+
+def test_split_segments_keeps_a_sub_min_tail_when_folding_would_break_max_duration():
+    # Same shape, but merging (0.0, 14.0) with the 1.0s tail would produce a 15.0s
+    # segment against a 14.0s cap. A bounds-violating segment beats an invented
+    # cut point, so the tail is left where the boundary set put it.
+    segments = split_segments([0.0, 14.0, 15.0], min_duration=2.0, max_duration=14.0)
+
+    assert segments == [(0.0, 14.0), (14.0, 15.0)]
+
+
 def test_split_segments_merges_short_spans_to_meet_min_duration():
     # Boundaries every 1s; min_duration=2.5 forces merging across multiple
     # 1s spans, but every chosen start/end must still be a set member.

@@ -109,13 +109,50 @@ def split_segments(
       a cut point already present in that set, never an invented interior
       point);
     - every segment's duration falls within ``[min_duration, max_duration]``
-      whenever the boundary set makes that achievable. At each step, prefer
-      the farthest available boundary that keeps the segment within
-      ``max_duration``; if that farthest boundary would still be shorter
-      than ``min_duration`` (boundaries are sparse), fall back to the
-      nearest boundary that reaches ``min_duration`` even if it overshoots
-      ``max_duration`` -- a boundary-violating segment is preferred over
-      inventing a non-boundary cut point.
+      whenever the boundary set makes that achievable (spec AC1.4). At each
+      step, take the NEAREST boundary that is at least ``min_duration`` away
+      and no more than ``max_duration`` away. If no boundary is legal because
+      every remaining one overshoots ``max_duration``, take the smallest
+      overshoot -- a boundary-violating segment is preferred over inventing a
+      non-boundary cut point.
+
+    CHANGED 2026-08-01 -- audit finding 0, "segmentation is inert on 6 of 8
+    corpus files". This function previously took the FARTHEST boundary within
+    ``max_duration``, which meant that whenever the whole file fit inside
+    ``max_duration`` it returned exactly one segment spanning the file and
+    silently discarded every interior boundary it had just been handed.
+    Measured over the whole 6-clip corpus mirror on 2026-08-01, with the
+    default 2-15 s profile:
+
+    ==================== ======== ============== ========== ==========
+    clip                 duration union boundaries farthest   nearest
+    ==================== ======== ============== ========== ==========
+    split_003_s66         8.3 s          9             1          4
+    split_001_s70        15.0 s         14             1          6
+    split_002_s69        15.0 s         14             1          5
+    split_004_s65        15.0 s         15             1          6
+    instagram_reel_test  27.1 s         27             2         12
+    viral_test_v2        14.6 s         15             1          6
+    ==================== ======== ============== ========== ==========
+
+    One segment makes the within-file rank undefined by construction, so
+    ``sharpness`` and ``motion_smoothness`` came back null (see
+    ``scoring_sharpness.min_max_normalize``) and the extractor could not rank
+    highlights because it never produced more than one.
+
+    **This choice is policy, not measurement, and is recorded as such.** Every
+    boundary in this corpus comes from a motion-derivative minimum (zero scene
+    cuts were detected in any of the six clips, independently reproducing
+    ``data/reference_pack/``'s central finding), and those minima land roughly
+    1-1.5 s apart because ``motion.find_local_minima_boundaries`` enforces a
+    1.0 s minimum gap. With candidates that dense, ANY rule inside a 2-15 s
+    window is choosing a segment length that the footage does not determine:
+    the old rule chose the maximum, this one chooses the minimum, and the pack
+    measured no cut rhythm that would justify a target in between -- inventing
+    one would be exactly the invented constant this project prohibits. The
+    nearest-legal rule is preferred because it is the only one of the two that
+    lets the capability work: it yields 4-12 rankable candidates per clip,
+    all within the configured bounds, versus one unrankable whole-file span.
     """
     boundaries = sorted(set(union_boundaries))
     if len(boundaries) < 2:
@@ -130,18 +167,38 @@ def split_segments(
         if not candidates:
             break
 
-        within_max = [b for b in candidates if (b - start) <= max_duration + eps]
-        if within_max:
-            chosen = max(within_max)
-            if (chosen - start) < min_duration - eps:
-                meets_min = [b for b in candidates if (b - start) >= min_duration - eps]
-                chosen = min(meets_min) if meets_min else end_of_video
+        legal = [
+            b
+            for b in candidates
+            if min_duration - eps <= (b - start) <= max_duration + eps
+        ]
+        if legal:
+            chosen = min(legal)
         else:
-            # Every remaining candidate already overshoots max_duration --
-            # take the smallest overshoot rather than inventing a cut point.
-            chosen = min(candidates)
+            overshooting = [b for b in candidates if (b - start) > max_duration + eps]
+            if overshooting:
+                # Every remaining candidate already overshoots max_duration --
+                # take the smallest overshoot rather than inventing a cut point.
+                chosen = min(overshooting)
+            else:
+                # Only sub-min_duration candidates remain, i.e. we are inside
+                # the final short remainder of the video. Run to the end; the
+                # tail-merge below folds it into its predecessor where it can.
+                chosen = end_of_video
 
         segments.append((start, chosen))
         start = chosen
+
+    # A final segment shorter than min_duration is an artefact of where the
+    # boundaries happened to fall, not a candidate anyone asked for. Fold it
+    # into its predecessor when doing so stays inside max_duration; otherwise
+    # leave it, on the same principle as the overshoot branch above -- a
+    # bounds-violating segment beats an invented cut point.
+    if len(segments) >= 2 and (segments[-1][1] - segments[-1][0]) < min_duration - eps:
+        tail_start, tail_end = segments[-1]
+        prev_start, _prev_end = segments[-2]
+        if (tail_end - prev_start) <= max_duration + eps:
+            segments.pop()
+            segments[-1] = (prev_start, tail_end)
 
     return segments
