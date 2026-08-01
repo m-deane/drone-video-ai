@@ -47,6 +47,14 @@
 # not, and that claim was stale. This rule makes the documentation true.
 /.claude/activity.md
 
+# Vendored Claude Code chat transcripts. Claude Code stores these under
+# ~/.claude/projects/<slug>/, where <slug> is derived from the project's ABSOLUTE path, so
+# relocating this repo (e.g. onto an SSD) silently orphans every prior session — /resume finds
+# nothing and reports no error. Copied in on 2026-08-01 so the history travels with the folder.
+# Gitignored deliberately: the remote is PUBLIC and raw transcripts contain absolute local
+# paths and unreviewed session content. Durable across a move, never published.
+/.claude/transcripts/
+
 # Consolidated local copy of source drone footage (~3.8GB) — a convenience mirror of the
 # read-only 00-assets/drone-video-examples/ and _archive/ trees (CLAUDE.md "Source footage"
 # table). Never authoritative provenance and never committed; regenerate by re-copying.
