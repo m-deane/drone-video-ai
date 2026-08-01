@@ -38,5 +38,16 @@ def test_min_max_normalize_degenerate_equal_values_returns_all_none():
     assert normalized == [None, None, None]
 
 
+def test_min_max_normalize_single_value_returns_none():
+    # The n < 2 branch -- the case bc3a499 was written for, and the one the pack
+    # measured to be the NORM on this corpus (every file is a single continuous
+    # shot). It had no unit test until 2026-08-01 (review-tests P2-T3): it was
+    # covered only by the integration suite, which skips without the gitignored
+    # footage mirror, so a fresh clone stayed green with this branch never run.
+    # Before the fix both of these returned [1.0] and were indistinguishable.
+    assert min_max_normalize([0.02]) == [None]
+    assert min_max_normalize([123.4]) == [None]
+
+
 def test_min_max_normalize_empty_list():
     assert min_max_normalize([]) == []

@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from drone_video_ai.highlight_extraction.letterbox import detect_active_rect
-from drone_video_ai.highlight_extraction.pipeline import run_pipeline
+from drone_video_ai.highlight_extraction.pipeline import PipelineConfig, run_pipeline
 from drone_video_ai.highlight_extraction.scoring_exposure import compute_raw_exposure
 
 from .conftest import (
@@ -29,14 +29,19 @@ from .conftest import (
 pytestmark = pytest.mark.integration
 
 
-def _run(clip: Path, out: Path | None = None) -> dict:
+def _run(clip: Path, out: Path | None = None, config: PipelineConfig | None = None) -> dict:
     """Run the real pipeline and return its manifest as a plain dict.
 
     ``run_pipeline`` returns a ``HighlightManifest`` rather than writing a file,
     so serialisation happens here. ``sort_keys=True`` makes the determinism
     comparison depend on manifest CONTENT, not on dict insertion order.
+
+    ``config`` is passed through so a test that depends on the SEGMENT COUNT can
+    force it explicitly rather than inheriting whatever the default duration
+    profile happens to produce on this footage -- see
+    ``test_single_segment_yields_null_rank_but_real_raw_measurement``.
     """
-    manifest = run_pipeline(str(clip))
+    manifest = run_pipeline(str(clip), config)
     payload = json.dumps(manifest.to_dict(), indent=2, sort_keys=True)
     if out is not None:
         out.write_text(payload)
@@ -126,10 +131,26 @@ def test_single_segment_yields_null_rank_but_real_raw_measurement(split_clip, tm
     sharpness/motion values across the 8-file corpus were saturated at 0.0 or
     1.0. Since the pack measured every corpus file to be a single continuous
     shot, that degenerate case is the NORM here, not an edge case.
+
+    The n=1 condition is FORCED here rather than inherited (review-tests P1-T1).
+    Under the default profile this clip yields one segment only because
+    max_duration == 15.0 exceeds its 8.3 s -- which is audit finding 0,
+    "segmentation is inert on 6 of 8 corpus files", an OPEN defect. Measured
+    2026-08-01 on split_003_s66.mp4: max_duration 15.0/8.0/5.0/3.0 -> 1/2/2/4
+    segments. So inheriting the default made this test fail the moment finding 0
+    was fixed, and the failure read as a regression in bc3a499 (the null-rank
+    fix) when it was the correct behaviour finally appearing. A duration window
+    no boundary set from an 8.3 s clip can satisfy forces the whole file into
+    one segment under any boundary-selection strategy, so this test now depends
+    on the null-rank contract alone.
     """
-    manifest = _run(split_clip, tmp_path / "m.json")
+    manifest = _run(
+        split_clip,
+        tmp_path / "m.json",
+        PipelineConfig(min_duration=600.0, max_duration=999.0),
+    )
     segments = manifest["segments"]
-    assert len(segments) == 1, "pack measured this file as one continuous shot"
+    assert len(segments) == 1, "the forced duration window admits no interior cut"
 
     scores = segments[0]["scores"]
     assert scores["sharpness"] is None, "rank must be null, not a fabricated 1.0"
@@ -143,6 +164,36 @@ def test_single_segment_yields_null_rank_but_real_raw_measurement(split_clip, tm
     # never nulled by segment count.
     assert isinstance(scores["exposure"], float)
     assert isinstance(scores["composition"], float)
+
+
+def test_multiple_segments_yield_a_real_rank(split_clip, tmp_path):
+    """The companion to the null-rank test: when the file DOES split, the rank
+    must be a real number spanning the full [0,1] range.
+
+    This is the n >= 2 path's first integration coverage (review-tests P1-T1).
+    Without it the suite only ever exercises the degenerate branch, so a
+    regression to "always return None" -- the mirror image of the bug bc3a499
+    fixed -- would pass every footage-gated test in this file.
+
+    max_duration is forced small for the same reason the sibling test forces it
+    large: the segment count must be a property of this test, not of the default
+    profile. Measured 2026-08-01 on split_003_s66.mp4 (8.3 s): a 2-3 s window
+    yields 4 segments.
+    """
+    manifest = _run(
+        split_clip,
+        tmp_path / "m.json",
+        PipelineConfig(min_duration=2.0, max_duration=3.0),
+    )
+    segments = manifest["segments"]
+    assert len(segments) >= 2, "a 2-3s window must split an 8.3s clip"
+
+    for field in ("sharpness", "motion_smoothness"):
+        ranks = [s["scores"][field] for s in segments]
+        assert all(r is not None for r in ranks), f"{field} rank is null at n>=2: {ranks}"
+        assert min(ranks) == 0.0 and max(ranks) == 1.0, (
+            f"{field} min-max rank must span [0,1] exactly: {ranks}"
+        )
 
 
 def test_pipeline_is_deterministic(split_clip, tmp_path):

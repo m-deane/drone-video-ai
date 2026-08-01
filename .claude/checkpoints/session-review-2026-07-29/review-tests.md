@@ -3,6 +3,12 @@
 STATUS: COMPLETE. Skeleton written 2026-07-29 07:35; the agent stalled before writing
 findings. Completed 2026-08-01 in-session by the orchestrator, not re-dispatched.
 
+**P1-T1, P1-T2 and P2-T3 were FIXED later the same day (2026-08-01)**, immediately after the
+repo moved to the SSD — see the status line on each, and
+`../session-2026-08-01/POST-MOVE-VERIFICATION.md`. P2-T4, P2-T5 and the three P3s still
+stand. The findings below are left as originally written: they record what was measured at
+the time, not current state.
+
 Scope:
 - `tests/integration/conftest.py`
 - `tests/integration/test_corpus_footage.py`
@@ -137,6 +143,15 @@ segment" (a configuration artefact, an open defect).
 small cap asserting a *real* rank appears (`sharpness is not None`), which would also give
 the n≥2 path its first integration coverage.
 
+**STATUS: FIXED 2026-08-01.** Applied as recommended, with one strengthening: the forced
+window is `min_duration=600.0, max_duration=999.0`, not `max_duration` alone. A large
+`max_duration` only yields one segment under the *current* greedy "farthest boundary within
+max" strategy — the very strategy finding 0 is likely to change — whereas a window no
+boundary set from an 8.3 s clip can satisfy forces one segment under any strategy. Companion
+test `test_multiple_segments_yield_a_real_rank` added (2–3 s window → 4 segments), asserting
+both ranks are non-null AND span [0,1] exactly. The `rank` mutant still fails exactly one
+test; its line moved `:135` → `:156`.
+
 ### P1-T2 — a partially-populated `data/raw/corpus/` reports green
 
 `tests/integration/conftest.py:55-72`, `test_corpus_footage.py:56-57,71-72`
@@ -149,6 +164,11 @@ contrived one.
 **Fix:** in the `corpus_dir` fixture, when the directory exists, require every member of
 `SPLIT_FAMILY + VERTICAL_FAMILY`; skip the whole suite with an explicit "incomplete mirror"
 message otherwise. Keep the fresh-clone path exactly as it is.
+
+**STATUS: FIXED 2026-08-01**, applied exactly as recommended and re-measured with the
+preserved harness after the SSD move: `FOOTAGE=partial` now gives **11 skipped, exit 0**
+(was 5 passed / 5 skipped), each skip naming the five missing clips; `FOOTAGE=absent` is
+unchanged at 11 skipped, exit 0.
 
 ### P2-T3 — the `n < 2` branch — the case `bc3a499` exists for — has NO unit test
 
@@ -175,6 +195,12 @@ clone `pytest` is green with the headline behaviour of `bc3a499` never executed.
 
 Corroborates review-normalization P3-I and localises it: add `min_max_normalize([5.0]) ==
 [None]` and `invert_and_normalize([3.0]) == [None]`. Two lines, no footage required.
+
+**STATUS: FIXED 2026-08-01.** Added as `test_min_max_normalize_single_value_returns_none`
+and `test_invert_and_normalize_single_value_returns_none`, each asserting two different
+magnitudes (`[0.02]`/`[123.4]`, `[3.0]`/`[987.6]`) so the test states the actual point —
+that the two are indistinguishable under the old behaviour — rather than pinning one value.
+The unit suite now covers the `n < 2` branch with no footage present.
 
 ### P2-T4 — `letterbox.py` has zero unit coverage; the module is footage-gated entirely
 

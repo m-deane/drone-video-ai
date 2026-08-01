@@ -55,11 +55,29 @@ def corpus_clip(name: str) -> Path:
 @pytest.fixture(scope="session")
 def corpus_dir() -> Path:
     """Skip the whole integration suite when the gitignored footage mirror is
-    absent, which is the normal state of a fresh clone."""
+    absent OR incomplete.
+
+    "Absent" is the normal state of a fresh clone and must skip rather than
+    fail. "Present but incomplete" is a DIFFERENT condition and used to be
+    unhandled (review-tests P1-T2): with 1 of 6 clips present the suite reported
+    `5 passed, 5 skipped, exit 0` -- green -- and the five skips included BOTH
+    `test_vertical_family_is_not_letterboxed` cases, the suite's only guard
+    against a detector that "finds" letterbox everywhere. `data/raw/` is a
+    hand-maintained mirror ("regenerate/re-copy" per CLAUDE.md), so a partial
+    copy is a realistic state -- and exactly what to expect after moving this
+    repo to another disk.
+    """
     if not CORPUS_DIR.is_dir():
         pytest.skip(
             f"real corpus footage not present at {CORPUS_DIR} "
             "(data/raw/ is gitignored; re-copy from 00-assets/drone-video-examples/)"
+        )
+    missing = [n for n in SPLIT_FAMILY + VERTICAL_FAMILY if not corpus_clip(n).is_file()]
+    if missing:
+        pytest.skip(
+            f"incomplete corpus mirror at {CORPUS_DIR}: missing {', '.join(missing)} "
+            "-- re-copy the full set from 00-assets/drone-video-examples/ "
+            "(a partial mirror silently drops the letterbox false-positive guard)"
         )
     return CORPUS_DIR
 

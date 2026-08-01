@@ -2,6 +2,15 @@
 
 Written 2026-08-01. Every size and path below was measured in-session, not estimated.
 
+> **THE MOVE HAPPENED, 2026-08-01 ~21:51.** The whole `photography-WORKFLOW-local/` tree —
+> not just this repo — moved from `/Users/mac/Documents/` to
+> `/Volumes/Phone SSD/photography-WORKFLOW-local/`. That is the lowest-risk option item 3
+> below recommends: the sibling read-only trees travelled too, so relative layout survives
+> and the recorded absolute provenance paths are stale-but-internally-consistent rather than
+> broken. Items 1 (`.venv/`) and 2 (memory/transcripts) behaved exactly as predicted; nothing
+> else broke; all five gitignored payloads arrived, `00-WORKING` included. Verification
+> results: `POST-MOVE-VERIFICATION.md`, beside this file.
+
 The short version: **git history, `src/`, `tests/` and `data/reference_pack/` all move
 cleanly. Four things do not.** Two of them are silent — they will not error, they will just
 be wrong or gone.
@@ -43,8 +52,9 @@ Do **not** `--no-deps` reinstall before the project install succeeds; that strip
 System `python3` is 3.9.6 and `pyproject.toml` requires `>=3.10`, so the venv must be built
 on 3.10+ or `pip install -e .` fails with "requires a different Python".
 
-Success check at the destination: `.venv/bin/python -m pytest -q` → **103 passed**
-(93 unit + 10 integration), which is the count as of 2026-08-01.
+Success check at the destination: `.venv/bin/python -m pytest -q` → **106 passed**
+(95 unit + 11 integration) as of 2026-08-01 post-move. It was **103** (93 + 10) earlier the
+same day, before the P1-T1/P2-T3 tests were added.
 
 ### 2. Chat history AND the file-based memory — WILL BE ORPHANED, SILENTLY. (6.8 MB)
 
@@ -132,13 +142,14 @@ about whether they arrived.
 ffprobe -version                                    # dyld check first
 uv venv --python 3.12 --clear .venv && VIRTUAL_ENV=.venv uv pip install -e ".[dev]"
 .venv/bin/python -c "import cv2; cv2.saliency.StaticSaliencySpectralResidual_create()"
-.venv/bin/python -m pytest -q                       # expect: 103 passed
-ls data/raw/corpus/*.mp4 | wc -l                    # expect: 8 -- see P1-T2, a partial
-                                                    # mirror still reports green
+.venv/bin/python -m pytest -q                       # expect: 106 passed
+ls data/raw/corpus/*.mp4 | wc -l                    # expect: 8
 git status && git log --oneline -3
 ```
 
-The `data/raw/corpus` count matters: review-tests finding **P1-T2** measured that a
-partially-copied mirror yields `5 passed, 5 skipped, exit 0` — green, with the entire
-letterbox false-positive guard silently skipped. After a move, that is exactly the failure
-mode to expect, and the test suite will not tell you.
+The `data/raw/corpus` count used to be the only thing standing between you and a silently
+half-verified suite: review-tests finding **P1-T2** measured that a partially-copied mirror
+yielded `5 passed, 5 skipped, exit 0` — green, with the entire letterbox false-positive guard
+skipped. **Fixed 2026-08-01**, immediately after this move: `corpus_dir` now requires the
+full six-clip set and skips the whole integration suite naming what is missing. The `ls`
+check above is now a cross-check rather than the only guard.

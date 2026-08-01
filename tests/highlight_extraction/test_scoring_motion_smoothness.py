@@ -51,5 +51,12 @@ def test_invert_and_normalize_degenerate_equal_values():
     assert invert_and_normalize([3.0, 3.0]) == [None, None]
 
 
+def test_invert_and_normalize_single_value_returns_none():
+    # The n < 2 branch; see the matching test in test_scoring_sharpness.py for
+    # why it matters here (review-tests P2-T3).
+    assert invert_and_normalize([3.0]) == [None]
+    assert invert_and_normalize([987.6]) == [None]
+
+
 def test_invert_and_normalize_empty():
     assert invert_and_normalize([]) == []
