@@ -48,7 +48,7 @@ The canonical schema is the one proven by `.claude/evals/summarise-email/dataset
 mkdir -p .claude/evals/"$EVAL_SLUG"/inputs .claude/evals/"$EVAL_SLUG"/gold
 ```
 
-From the Step 2 answers, work with the user to fill in and write `.claude/evals/{slug}/dataset.yml`:
+From the Step 2 answers, elicit the rubric explicitly — ask the user to name the scoring criteria and assign each a 0–1 weight (weights must sum to 1.0). This rubric-authoring step is where graded objective weights are elicited, because this is where their consumer lives: the elicited `rubric.criteria` names and weights are exactly what `/rubric-eval` accepts as its `--criteria` input downstream. Do not elicit weights at agent dispatch time — nothing there consumes them. Then fill in and write `.claude/evals/{slug}/dataset.yml`:
 
 ```yaml
 name: {slug}
@@ -106,6 +106,7 @@ Guidelines:
 - Include at least 3 positive examples (expected behaviour)
 - Include at least 2 negative / edge-case examples (failure modes from Step 2); recommended minimum 7 total spanning positive, edge-case, and adversarial
 - Tag each example: `positive`, `negative`, `edge-case`, `adversarial`
+- Remind the user when the weights are set: LLM-judged scores produced against these criteria are valid for **relative** comparison only (this prompt vs a baseline), never absolute quality — the weights define what "better" means between versions, not a quality guarantee
 
 ## Step 4 — Scaffold the Input and Gold Files
 
@@ -137,6 +138,12 @@ Print:
 > Eval harness complete. Baseline recorded. Now build the feature to beat the baseline.
 >
 > **Next step**: implement the feature, then re-run `/eval-runner` (or `/qa-iterate`) to track progress against the baseline.
+
+## Step 5b — Demo Bootstrap into the Prompt Under Test
+
+When a scored dataset exists under `.claude/evals/{slug}/` (golds authored and at least one `/eval-runner` scorecard recorded), bootstrap demonstrations into the prompt being built: select the 1–2 gold input→output pairs with the highest per-example overall scores from the scorecard and insert them into the prompt-under-test as few-shot examples. Demonstrations are stronger likelihood evidence than instruction wording (DSPy, arXiv:2310.03714) — a scored-good pair shifts P(output|context) toward the gold behaviour more reliably than another instruction sentence.
+
+If no scored dataset exists yet (golds unauthored, or the baseline has not been run), this step is a no-op — state "Demo bootstrap skipped: no scored eval dataset under `.claude/evals/{slug}/` yet." and continue to Step 6.
 
 ## Step 6 — Hand Off
 

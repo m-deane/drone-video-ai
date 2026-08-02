@@ -36,18 +36,36 @@ Write a prompt that would produce the target output. Include:
 - Constraints and exclusions
 - Any few-shot examples if the output pattern is complex
 
-## Step 3: Validate via Comparison
+## Step 3: Validate via Execution
 
-Run the candidate prompt mentally against the target output:
-- Would this prompt produce the observed structure? If not, adjust.
-- Would this prompt produce the observed tone? If not, adjust.
-- Does the prompt over-constrain (would produce only this output) or under-constrain (would produce many different outputs)? Aim for the narrowest prompt that still allows natural variation.
+Do NOT validate the candidate prompt mentally — self-critique without tool output is not verification (Constitution rule 6: tool-grounded verification).
+
+1. **Execute the candidate prompt once, for real**: follow it as a fresh instruction, using only the context the prompt itself supplies, and produce the output it yields.
+2. **Write both texts to files** for mechanical comparison:
+
+```bash
+VDIR=.claude/checkpoints/reverse-prompt-$(date +%Y%m%d-%H%M%S)
+mkdir -p "$VDIR"
+# write the execution result to $VDIR/candidate-output.md
+# write the target output to $VDIR/target-output.md
+```
+
+3. **Compare mechanically**:
+
+```bash
+python3 .claude/scripts/jaccard.py "$VDIR"/candidate-output.md "$VDIR"/target-output.md
+```
+
+4. **Interpret and iterate**: record the pairwise Jaccard score. If it is ≥ 0.50 (jaccard.py's MARGINAL floor — exact lexical identity is not expected from a good prompt, which should allow natural variation), accept the candidate. If below 0.50, adjust the prompt (structure, tone, constraints), re-execute, and re-compare — at most 2 iterations, then report the best-scoring candidate with its score.
+
+Also check calibration: does the prompt over-constrain (would produce only this output) or under-constrain (would produce many different outputs)? Aim for the narrowest prompt that still allows natural variation.
 
 ## Step 4: Output
 
 Present:
 1. The reverse-engineered prompt (in a code block, ready to copy-paste)
-2. Confidence assessment: how likely is this prompt to reproduce the target output?
-3. Variants: 1-2 alternative prompts that might produce similar output with different tradeoffs
+2. The measured Jaccard similarity between the real execution of the prompt and the target output (from Step 3), with the number of iterations taken
+3. Confidence assessment: how likely is this prompt to reproduce the target output? Ground this in the measured score, not intuition.
+4. Variants: 1-2 alternative prompts that might produce similar output with different tradeoffs
 
 If the user wants to iterate, refine the prompt based on their feedback.

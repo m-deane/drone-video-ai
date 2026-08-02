@@ -20,6 +20,19 @@ context:
     promotion if the candidate does not beat the active version on every
     rubric criterion or is not stable (>= 0.80).
 
+    Where the candidate comes from is outside this recipe, but how it was
+    evidenced is not. If the edit under test was produced by
+    `/prompt-critique-rewrite --traces {path}`, the critique cited verbatim
+    excerpts from persisted eval evidence (a promptlab run dir, an
+    /eval-runner checkpoint `eval-runner-scores.json` `feedback` object, or a
+    `.optimize-log.md`) rather than an a-priori checklist — pass that same
+    path into the create step's motivation line so the lineage records what
+    the rewrite was responding to. `--traces` is the READER flag;
+    /eval-runner's `--optimize-log` is the WRITER flag for the same
+    TRACE-LOG contract. If the candidate instead came out of
+    `/prompt-critique-rewrite --optimize`, the held-out precondition in the
+    candidate-wins gate applies and is not optional.
+
 steps:
   - skill: version-prompt
     args: "create {skill-name}"
@@ -92,8 +105,27 @@ gates:
       more than the 0.02 noise floor (a <= 0.02 single-criterion dip is treated as
       a tie, consistent with /prompt-ab-test). A regression > 0.02 on any criterion
       or a drop in weighted overall FAILS.
-    parse: "compare winner recommendation, weighted overall, and per-criterion delta table"
-    threshold: "overall >= active AND stability >= 0.80 AND no criterion regression > 0.02"
+
+      Held-out precondition (applies only when the candidate was produced by a
+      `/prompt-critique-rewrite --optimize` loop): that loop scores and selects on
+      an optimisation split of at most `n - max(2, ceil(0.25n))` examples, so its
+      winning candidate has never been scored on the holdout ids. The comparison
+      evidence here must therefore cover ALL n dataset examples, freshly scored by
+      /eval-runner, with the holdout ids named in the compare output and flagged
+      optimiser-unseen. Holding on the holdout is an ADDITIONAL necessary
+      condition, never a sufficient one — a candidate that wins on the 2-example
+      holdout but loses on the full sweep FAILS this gate. Accepting on the
+      holdout alone would be exactly the small-sample acceptance the full-sweep
+      rule exists to forbid. Candidates not produced by an --optimize loop have no
+      holdout and this paragraph does not apply to them.
+    parse: >
+      compare winner recommendation, weighted overall, and per-criterion delta
+      table; plus, for --optimize-derived candidates, the example count scored and
+      the named holdout ids
+    threshold: >
+      overall >= active AND stability >= 0.80 AND no criterion regression > 0.02
+      AND (if --optimize-derived) all n examples freshly scored with holdout ids
+      named and the win holding on the full n
 
   user-approval:
     description: >

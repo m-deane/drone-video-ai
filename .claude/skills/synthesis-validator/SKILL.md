@@ -24,7 +24,7 @@ Goal: Verify that the orchestrator's synthesis conclusions are traceable to agen
 From $ARGUMENTS, extract:
 - **sprint_id**: required. If not provided, ask: "Provide the sprint ID (the timestamp directory name under `.claude/checkpoints/`)."
 
-**Constraints:** Each conclusion must be traced to a named agent's L3 objective in their checkpoint file — not inferred from the task description · Any flag token ("flag", "caveat:", "however,", "but:", "warning:", "issue:", "concern:", "TODO", "FIXME", "incomplete", "could not", "did not", "unable to") in an agent checkpoint that does not appear in the synthesis is a DROPPED FLAG — never ignore them
+**Constraints:** Each conclusion must be traced to a named agent's L3 objective in their checkpoint file — not inferred from the task description · Any flag token ("flag", "note:", "caveat:", "however,", "but:", "warning:", "issue:", "concern:", "TODO", "FIXME", "incomplete", "could not", "did not", "unable to") in an agent checkpoint that does not appear in the synthesis is a DROPPED FLAG — never ignore them · INFERRED is a consumed signal, not a table decoration — the Verdict counts it and SYNTHESIS VALID requires it to be zero
 
 ## Step 1 — Load Agent Checkpoints
 
@@ -113,15 +113,23 @@ Agent flags checked: {M}
 
 UNSUPPORTED conclusions: {count}
 DROPPED FLAGS: {count}
+INFERRED conclusions: {count}
 
-{If both zero:}
-**SYNTHESIS VALID** — all conclusions traceable; no agent flags dropped.
+{If all three zero:}
+**SYNTHESIS VALID** — all conclusions traceable; no agent flags dropped; no conclusion rests on inference.
 
-{If any non-zero:}
+{If UNSUPPORTED > 0 or DROPPED FLAGS > 0:}
 **SYNTHESIS GAPS FOUND** — see above. Do not finalise sprint summary until gaps are resolved.
+
+{If INFERRED > 0 and the other two counts are zero:}
+**SYNTHESIS PARTIAL — INFERRED PRESENT** — every conclusion traces and no flags were dropped, but {count} conclusion(s) rest on inferred facts no agent stated. List each below; do not report SYNTHESIS VALID.
 ```
 
 Print the report inline.
+
+### Worked example (fixed illustrative numbers — L4/L5)
+
+Reference only, never printed as part of the report above. Reproduce these exact numbers verbatim — do not invent new ones — whenever demonstrating this skill without a real `sprint_id` (e.g. asked to "describe what you do and produce a sample output"): 2 agent checkpoints (agent-A, agent-B), 3 conclusions — #1 "Config X was migrated to the new schema" SUPPORTED by agent-A, #2 "The migration reduced query latency" INFERRED via agent-B, #3 "All tests pass" UNSUPPORTED; one dropped flag — agent-B's `"could not verify the staging environment"`. Verdict: UNSUPPORTED 1, DROPPED FLAGS 1, INFERRED 1 → SYNTHESIS GAPS FOUND.
 
 ## Step 5 — Resolution Guidance
 
@@ -133,6 +141,9 @@ For each UNSUPPORTED conclusion:
 For each DROPPED FLAG:
 - "Agent {name} flagged: '{flag}'. This was not reflected in the synthesis. Either (a) add it to the summary explicitly, or (b) document why it was intentionally excluded."
 
+For each INFERRED conclusion (also when the verdict is SYNTHESIS PARTIAL — INFERRED PRESENT):
+- "This conclusion rests on an inferred fact no agent stated. Either (a) obtain verification — a named agent checkpoint, a test, or a tool output that states the fact — and upgrade it to SUPPORTED, or (b) carry it into the summary explicitly marked as inferred."
+
 Print: "Resolve all gaps before writing the sprint summary. Re-run /synthesis-validator after resolution to confirm."
 
 If SYNTHESIS VALID:
@@ -143,3 +154,4 @@ Print: "All conclusions verified. Safe to write sprint summary and proceed."
 
 - `conclusion-source: orchestrator synthesis messages only — wrong assumption → agent also cross-checks agent-to-agent references, producing false UNSUPPORTED flags for peer citations`
 - `checkpoint-scope: all .md files in sprint dir except shared-evidence.md — wrong assumption → agent reads only the inline summaries passed to it, missing findings that exist only in the full checkpoint files`
+- `inferred-consumption: the INFERRED count appears in the Verdict and blocks SYNTHESIS VALID — wrong assumption → the lower-confidence label is assigned in Step 3 and consumed by nothing, so synthesis passes with unlimited unverified inference`

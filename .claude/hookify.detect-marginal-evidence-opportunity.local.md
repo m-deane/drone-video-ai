@@ -13,6 +13,6 @@ You are about to dispatch an agent prompt. Before sending, remove filler conditi
 
 **Run:** `/marginal-evidence-audit [prompt-file-or-pasted-text]`
 
-Why this matters: The top 5 conditions capture ~95% of reducible entropy. Every sentence beyond the discriminating set costs attention weight — the model must allocate capacity to conditions that produce no categorical difference in output. Filler preserved alongside load-bearing constraints causes the load-bearing constraints to hold less attention weight over the course of a long context.
+Why this matters: A small number of high-leverage conditions captures most of the reducible variance — the 5-condition budget is a practitioner heuristic, not a measured constant. Every sentence beyond the discriminating set costs attention weight — the model must allocate capacity to conditions that produce no categorical difference in output. Filler preserved alongside load-bearing constraints causes the load-bearing constraints to hold less attention weight over the course of a long context.
 
 The audit flags 14 prohibited phrase classes (generic assertions, social hedges, restatements, posture fillers) and applies a marginal evidence test per sentence: if removing it would not change the posterior on any L1–L6 layer, it is waste. Run before dispatch, not after — waste added is harder to identify than waste prevented.

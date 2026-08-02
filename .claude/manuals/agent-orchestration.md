@@ -50,6 +50,21 @@ timestamp — `{sprint-label}` is the sprint directory name, not `{YYYYMMDD-HHMM
 
 ## Decision procedure
 
+**Step 0 — should this be multi-agent at all?** Run this before sizing any wave. The default is
+**a single agent with tools**, and parallel dispatch has to earn its cost. Choose the single
+agent when **any** of these holds:
+
+| Condition | Why the single agent wins |
+|-----------|---------------------------|
+| the work is **serial** — each step consumes the previous step's output | there is nothing to run in parallel; a wave just adds dispatch latency and N fresh windows that each need the full Conditions block re-written into them |
+| the **worker's reasoning must be inspected** (debugging, root-cause work, anything where a wrong intermediate step compounds) | a sub-agent returns ≤150 words; its reasoning is not in the orchestrator's window, so a wrong intermediate conclusion is invisible until it has already propagated into the synthesis |
+| **coordination overhead exceeds the parallelism win** — sub-tasks share files, need cross-talk, or the synthesis is harder than the work | agents cannot see each other; every shared file is a write conflict and every hand-off has to be serialised through the orchestrator anyway |
+| the task is **small enough that one agent finishes in one turn** | checkpoint + gate + synthesis-validator is three extra steps to save nothing |
+
+Dispatch a wave only when the sub-tasks are **separable** by the test in *Escalation criteria*
+(no shared file ownership **AND** no ordering dependency) and each produces an independently
+useful artifact. If Step 0 says single agent, stop here — the rest of this table does not apply.
+
 | IF | THEN |
 |----|------|
 | task needs ≤ 4–5 agents | dispatch one wave |
@@ -69,6 +84,30 @@ reclaimable container, or you cannot confirm persistence, default to **ephemeral
 each file synchronously with the file tools. Only choose background waves when persistence is
 confirmed. Worked Example 2 below shows the *post-hoc* symptoms (0 files produced + stale
 transcript mtimes); this rule makes ephemeral the safe default when persistence is unknown.
+
+## Model tiering
+
+Pick the tier from the *shape of the work*, not from how important the task feels. The roster in
+`.claude/agents/` is the worked precedent — 17 agents, split **3 haiku / 1 opus / 13 sonnet**
+(verify with `grep -h '^model:' .claude/agents/*.md | sort | uniq -c`):
+
+| Tier | Dispatch when the work is | Precedent in `.claude/agents/` |
+|------|---------------------------|--------------------------------|
+| **haiku** | mechanical and verifiable — pattern-matching over text, checking claims against what is on disk, bookkeeping. Correctness is checkable by a grep or a file test, so a cheaper model's errors are caught by the gate rather than by reading its prose | `fact-checker` (verifies paths/names exist), `error-detective` (log/trace pattern analysis), `context-manager` (session bookkeeping) — 3 of 17 |
+| **sonnet** | ordinary implementation, review, and diagnosis — writing and editing code, running the quality gates, following a manual's step-by-step. This is the **default**; do not tier up without a reason | 13 of 17 — the whole implementation/review/diagnosis roster |
+| **opus** | open-ended design where the output *is* judgement: prompt and skill design, architecture trade-offs, adversarial analysis with no mechanical scorer | `prompt-engineer` (prompt/system-prompt optimisation) — 1 of 17 |
+
+Rules that follow from the split:
+
+- **Sonnet is the default; the other two tiers are exceptions and stay rare.** A roster that
+  drifts toward opus is a signal that tasks are under-specified, not that they are hard —
+  tighten the L3 objective before tiering up.
+- **Never tier down to buy speed on work whose output is not mechanically checkable.** haiku is
+  for tasks with a gate; if the only check is a human reading the answer, use sonnet.
+- **Tiering down is also a recovery move.** A repeated stream-idle timeout is handled by
+  `model: sonnet` + narrower scope (see *Failure modes*), not by escalating the tier.
+- **Changing tier mid-recovery in a way that changes the deliverable is an escalation** — see
+  *Escalation criteria*; confirm the reduced scope with the user first.
 
 ## Step-by-step procedure
 

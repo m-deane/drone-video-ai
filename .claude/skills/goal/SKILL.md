@@ -49,6 +49,8 @@ If no conditions block (L1 Jurisdiction line) is already present in this session
 
 > Run `/session-conditioner [today's goal]` now to inject L1, L2, and mandatory switch variables before the conditions block is built.
 
+**Single elicitation gate**: session-conditioner's consequence-tiered elicitation (its Step 3b autonomy question and Step 4 derived-L3 confirm-or-correct) is the one place the user is asked — /goal itself asks no second autonomy or objective question. A deliberate typed `/goal [mode]` counts as a deliberate invocation for session-conditioner's firing rule; the elicited answers and their provenance tags (`user-stated {date}` / `user-confirmed` / `auto-derived` / `assumed default` / `user-declined`) flow through into the conditions block that Steps 3–5 consume unchanged.
+
 **Model note**: sub-skills in the entry phase (/session-conditioner, /evidence-injection-template, /condition-audit) run inline — no agent dispatch needed. If you dispatch any agent during implementation, use `model: "opus"` for planning/architecture agents and `model: "sonnet"` for implementation agents.
 
 **Stream idle timeout prevention** — any agent dispatched during implementation must write all output to its checkpoint file; inline return ≤150 words only.
@@ -67,12 +69,14 @@ Use only the normalized values `feature` | `debug` | `architecture` | `code-revi
 
 The emitted block will include L1–L6 and Switch variables. Hold the output — do not dispatch agents yet.
 
+**Residual-field check (before Step 4)**: scan the held block for user-only bracketed fields that remain unfilled — the template's placeholder tokens for facts only the user can supply (debug hypothesis under test, already-ruled-out list, minimal repro path, last known good; feature: the observable user-facing behaviour). If any remain, elicit them from the user now, before invoking condition-audit — condition-audit FAILs residual placeholder tokens in L5, so an unfilled bracket reaching Step 4 stops the pipeline rather than passing lexically. Do not fill these brackets with guessed values; a fabricated value carrying implicit user authority is worse than an empty one.
+
 ### Step 4 — Run /condition-audit
 
 Run `/condition-audit` on the conditions block produced in Step 3.
 
 - If condition-audit returns PASS: proceed to Step 5.
-- If condition-audit returns WARN or FAIL: surface the specific deficiency. The most common failure is L3 written as a task description ("implement X") rather than an observable outcome ("user can do X, verified by tests passing"). Fix L3 before proceeding.
+- If condition-audit returns WARN or FAIL: surface the specific deficiency. The most common failure is L3 written as a task description ("implement X") rather than an observable outcome ("user can do X, verified by tests passing"). When the flagged layer is L3, do NOT silently self-repair: present the corrected candidate to the user as a confirm-or-correct prompt — "I would restate the objective as: '{candidate L3}'. Correct?" — and record the answer's provenance (`user-confirmed` if accepted, `user-stated {date}` if the user types their own). A silently rewritten objective passes the form check while laundering model uncertainty into the acceptance test. For non-L3 deficiencies, fix and re-run the audit. Fix the flagged layer before proceeding.
 
 ### Step 5 — Write Goal to Disk
 
@@ -137,7 +141,7 @@ Run `/checkpoint-gate {sprint_id} {resolved-agent-names…}` (positional form) a
 
 ### Step 4 — Run /synthesis-validator
 
-Run `/synthesis-validator` to verify that every conclusion stated in the session traces to a named agent's L3 checkpoint — not to inference or assumption.
+Run `/synthesis-validator {sprint_id}` to verify that every conclusion stated in the session traces to a named agent's L3 checkpoint — not to inference or assumption. Record the report's three counts (UNSUPPORTED, DROPPED FLAGS, INFERRED) — Step 6 consumes all three.
 
 ### Step 5 — Optional: /rubric-eval
 
@@ -147,8 +151,8 @@ If the goal involved measurable quality criteria (test pass rate, lint score, pe
 
 Print one of:
 
-**GOAL MET**: "L3 objective verified. Checkpoint gate passed. Synthesis validated. Ready to commit."
+**GOAL MET**: "L3 objective verified. Checkpoint gate passed. Synthesis validated (UNSUPPORTED=0, DROPPED FLAGS=0, INFERRED=0). Ready to commit." — GOAL MET requires all three synthesis-validator counts at zero; an uncertainty label the gate ignores is a label the pipeline never consumes.
 
-**GOAL PARTIAL**: "L3 objective partially met. Missing: {list what the checkpoint gate or synthesis-validator flagged}. Resolve before committing."
+**GOAL PARTIAL**: "L3 objective partially met. Missing: {list what the checkpoint gate or synthesis-validator flagged}. Resolve before committing." — INFERRED > 0 with the other two counts at zero lands here, not at GOAL MET: list each INFERRED conclusion and either obtain agent-checkpoint verification for it or carry it into the summary explicitly marked as inferred.
 
 **GOAL FAILED**: "L3 objective not met. {specific gap from synthesis-validator}. Do not commit — reopen the goal."

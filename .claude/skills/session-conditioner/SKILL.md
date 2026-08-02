@@ -97,15 +97,55 @@ Set `autonomy-level` from session context:
 
 Include `autonomy-level: {value}` in the Session Conditions block emitted in Step 5.
 
+## Step 3b — Consequence-Tiered Elicitation (deliberate invocations only)
+
+**Firing rule** — fire once, at deliberate typed `/goal [mode]` or `/session-conditioner` invocation, before any Tier B/C dispatch; never when this skill was hookify-inferred from a lifecycle phrase, never inside recipes, sprints, or headless runs, never when `autonomy-level: autonomous` was already stated (the user has purchased no-questions). Each question is skipped when session evidence already resolves it — the Step 3 inference from user statements runs first, and a resolved variable is not re-asked.
+
+**Consequence-tier filter** — ask only about a switch variable that (i) carries a Tier B/C consequence, (ii) is unresolved by session evidence after the Step 3 inference, (iii) lacks a later action-time gate, and (iv) arises in a deliberate invocation. Applying that filter to the Critical Patterns table leaves essentially `autonomy-level`. `sync-mode` is explicitly NOT asked at session start — its dangerous branch is guarded where the danger materialises (explicit script argument + Constitution reversibility gate), and an early answer would pre-empt the better-informed action-time confirm.
+
+When the filter leaves `autonomy-level` unresolved, ask (header: "Autonomy"):
+
+> How much should I confirm before acting this session? Wrong value → an irreversible change without review, or needless friction.
+> - `assisted` (default) — confirm Tier B plans before dispatch; Tier A proceeds
+> - `autonomous` — Tier A unattended AND Tier B proceeds; Tier C still confirms every action
+> - `supervised` — confirm every action including Tier B
+
+**Provenance tags** — every elicited or inferred value lands in the Step 5 Conditions block with a provenance tag so /calibration-retrospective can eventually score elicited vs assumed values against outcomes:
+
+- `user-stated {date}` — the user typed or dictated the value themselves
+- `user-confirmed` — the user was shown a derived value and accepted it
+- `auto-derived` — inferred from session evidence (Step 2/Step 3 heuristics), never shown for confirmation
+- `assumed default` — table default carried forward, never asked
+- `user-declined` — the user was asked and chose to skip
+
 ## Step 4 — Obtain L3 Objective
 
-If $ARGUMENTS contains a goal: use it as L3.
+If $ARGUMENTS contains a goal: derive L3 from it as an observable outcome (what will exist or pass when the session is complete). Then pick exactly one path:
+
+- **Confirm-or-correct** — only when BOTH hold: the planned dispatch is Tier B/C, AND the goal text leaves the acceptance predicate genuinely ambiguous (two or more plausible observable outcomes fit the words). The Step 3b firing rule applies unchanged — never hookify-inferred, never in recipes/sprints/headless runs, never under stated `autonomy-level: autonomous`. Ask (header: "Objective"):
+
+  > I derived this session objective: '{derived L3 — Agent produces X such that Y, verified by Z}'. Optimising for this means deprioritising {consequence clause}. Correct?
+  > - Confirm — this is the acceptance test; I'll verify it before reporting done
+  > - Correct it — I'll type the observable outcome (what will exist or pass when done)
+  > - Task is comparative/optimisation-shaped — also ask me for criteria + weights (opens Q3)
+
+  Confirm → provenance `user-confirmed`. Correct it → read the reply as L3, provenance `user-stated {date}`. Third option → ask the follow-up (header: "Better means"):
+
+  > What should 'better' mean when outputs trade off? (Weights feed /rubric-eval; judged scores stay relative-only.)
+  > - Correctness-dominant — correctness > completeness > brevity (no trade-downs on correctness)
+  > - Coverage-dominant — completeness/coverage weighted highest; length is not a penalty
+  > - Conjunctive bar — all named criteria must pass; no partial credit (B6/ACHIEVED style)
+  > - I'll state weights — free-text criteria: weight list
+
+  Record the answer alongside L3; it flows into /rubric-eval as its criteria input. Precedence: if the task already has an eval harness whose `dataset.yml` declares `rubric.criteria`, that dataset rubric is canonical (see /rubric-eval Step 1) — the Q3 answer never overrides it at scoring time. Instead, carry the Q3 answer into /eval-harness's rubric-authoring step, the single locus where weights are elicited or amended; Q3 at session start seeds that step, it does not substitute for it.
+
+- **Derive and state** — every other case (Tier A dispatch, or the predicate is unambiguous): emit the derived L3 in Step 5 with provenance `auto-derived`, no question.
 
 If $ARGUMENTS is "auto" or empty, print:
 
 > What is today's session objective? State it as an observable outcome (what will exist or pass when the session is complete). Example: "The [feature] module is fully implemented with passing tests and lint-clean code."
 
-Read the user's response as L3.
+Read the user's response as L3, provenance `user-stated {date}`.
 
 ## Step 5 — Emit Conditions Block
 
@@ -116,15 +156,15 @@ Print the session conditions block inline:
 
 L1 Jurisdiction : {$L1_STACK} — CLAUDE.md patterns govern; no external patterns apply
 L2 Posture       : {$L2_PHASE}
-L3 Objective     : {today's goal as observable outcome}
+L3 Objective     : {today's goal as observable outcome} [{user-stated {date} | user-confirmed | auto-derived}]
 L4 Constraints   : {derived from CLAUDE.md Critical Patterns — do not hardcode; use project-specific values}
 L5 Facts         : [read CLAUDE.md for project-specific registry paths, schema location, and test structure]
 L6 Output        : [determined per task]
 
 Switch variables:
-  {var-1}        : {assumption} — wrong assumption → {consequence}
-  {var-2}        : {assumption} — wrong assumption → {consequence}
-  autonomy-level : {supervised|assisted|autonomous} — wrong assumption → over-interrupts or under-gates
+  {var-1}        : {assumption} — wrong assumption → {consequence} [assumed default]
+  {var-2}        : {assumption} — wrong assumption → {consequence} [assumed default]
+  autonomy-level : {supervised|assisted|autonomous} — wrong assumption → over-interrupts or under-gates [{user-stated {date} | user-confirmed | auto-derived | assumed default | user-declined}]
 
 Lessons from prior sessions: {top 2-3 entries from .claude/lessons.md if present, else omit this line}
 ```
@@ -132,6 +172,8 @@ Lessons from prior sessions: {top 2-3 entries from .claude/lessons.md if present
 Then print:
 
 > These conditions are operative for this session. Every agent dispatched, every claim made, and every code change must be consistent with L1 Jurisdiction and the switch variables above. Any response that conflicts with these conditions is posterior drift — surface it rather than acting on it.
+
+**Mid-session condition refresh** — session-start injection alone under-uses the recency position: retrieval of information in a long context is best at the beginning and end and degrades significantly in the middle ("lost in the middle" U-shape), so a conditions block that sat at the session start now sits in the worst-recall region. Before any late-session Tier B/C dispatch (heuristically: after the second agent wave, after 3+ commits this session, or whenever /context-budget recommends checkpointing), restate the switch variables (with their provenance tags) and the L3 objective in a fresh message near the context tail. Never let the switch variables' only appearance drift into the middle of a long context — middle placement is the enemy.
 
 ## Step 6 — Write to Disk (Optional)
 

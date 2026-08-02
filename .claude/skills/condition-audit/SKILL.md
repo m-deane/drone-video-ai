@@ -1,6 +1,6 @@
 ---
 name: condition-audit
-description: Audit an agent prompt against the 6-layer Conditions framework (L1–L6 + switch variables). Produces a pass/fail/warn table per layer and a final verdict. Missing L1, L3, or L4 = FAIL (do not dispatch). Missing L2, L5, L6, or switch variables = WARN.
+description: Audit an agent prompt against the 6-layer Conditions framework (L1–L6 + switch variables). Produces a pass/fail/warn table per layer and a final verdict. Missing L1, L3, or L4 = FAIL (do not dispatch). Missing L2, L5, L6, or switch variables = WARN. Residual `{...}` placeholder tokens in L5 = FAIL; an auto-derived, unconfirmed L3 = WARN.
 argument-hint: "[agent-prompt-file-or-pasted-text]"
 allowed-tools: Read, Write, Bash
 cluster: prompt-eng
@@ -51,6 +51,14 @@ Apply each check in order. Record status as ✓ (pass), ⚠ (warn), or ✗ (fail
 - Finding on fail: "No observable outcome found. The agent cannot verify its own done-ness and will stop at 'locally reasonable' rather than 'project-correct'."
 - Suggested fix: "Rewrite the objective as: 'Agent produces {artifact} such that {externally verifiable condition}.'"
 
+**Provenance sub-check**: if the L3 carries a provenance tag (`user-stated`, `user-confirmed`, or `auto-derived` — written by /session-conditioner or /goal), check its value. An objective the model derived itself is a guess at the user's intent, not evidence of it — a well-formed wrong L3 passes every form check above and gets certified at the completion gate.
+
+- PASS (✓): tag is `user-stated` or `user-confirmed`.
+- WARN (⚠): tag is `auto-derived` with no confirming tag.
+- Not applicable (–): no provenance tag present — tags are optional metadata; this sub-check never penalises their absence.
+- Finding on warn: "L3 is auto-derived and unconfirmed. The objective may be sharp-and-wrong: it satisfies the form check while optimising for something the user did not ask for."
+- Suggested fix: "Confirm or correct the derived objective with the user before Tier B/C dispatch."
+
 ### L4 Constraints
 **Checks for**: project-specific constraints — rules that differ from generic web-app conventions. Examples: "all queries must filter by the authenticated user's id", "all errors must use the project's standard error type", "string inputs require length bounds", "no console.log in production".
 
@@ -69,6 +77,14 @@ Apply each check in order. Record status as ✓ (pass), ⚠ (warn), or ✗ (fail
 - Finding on warn: "Only 1 codebase-specific fact found. Agents prune apparently-irrelevant context early; a single fact without corroborating specifics is frequently discarded."
 - Finding on fail: "No codebase-specific facts found. The agent has no grounding in the actual project structure and will hallucinate paths and names."
 - Suggested fix: "Add at minimum: the relevant file path(s), the data model name(s) involved, and one field or method name."
+
+**Placeholder sub-check (mechanical)**: scan the L5 Facts section for residual template placeholder tokens. Detection rule: any substring matching an opening brace, one or more characters that are neither a brace nor a newline, then a closing brace — regex `\{[^{}\n]+\}`. Any match = FAIL, regardless of how many real facts are also present, and matched tokens never count toward the ≥2-facts tally above (without this rule a bracketed template block passes the fact count lexically while carrying zero conditioning evidence).
+
+- PASS (✓): no `\{[^{}\n]+\}` match in the L5 Facts section.
+- FAIL (✗): ≥1 residual `{...}` placeholder token in L5.
+- Finding on fail: "Residual template placeholder(s) found: {list the matched tokens}. An unfilled bracket is an evidence slot the dispatcher skipped — the agent will be conditioned on the placeholder text, not on facts."
+- Suggested fix: "Fill the field with a real value via the /evidence-injection-template elicitation round, or record it as deliberately empty (`none — user-declined`). Never fill it with a guessed value — a fabricated fact conditions the agent off-target, which is worse than a blocked dispatch."
+- If a genuine fact must contain a literal brace pair (rare), rewrite it without braces — the rule is deliberately mechanical and admits no judgment calls.
 
 ### L6 Output
 **Checks for**: a checkpoint path the agent must write to, and a format specification (markdown table, code fence, bullet list, etc.).
@@ -92,8 +108,8 @@ Apply each check in order. Record status as ✓ (pass), ⚠ (warn), or ✗ (fail
 ## Pass/Fail Verdict Logic
 
 Collect results:
-- FAIL conditions: L3 absent or failed, L1 absent or failed, L4 absent or failed → any one of these = overall verdict FAIL
-- WARN conditions: L2 warn, L5 warn or fail, L6 warn or fail, switch variables warn or fail → all warns, no fails = overall verdict WARN(n)
+- FAIL conditions: L3 absent or failed, L1 absent or failed, L4 absent or failed, or L5 placeholder sub-check failed (≥1 residual `{...}` token) → any one of these = overall verdict FAIL
+- WARN conditions: L2 warn, L3 provenance warn (auto-derived, unconfirmed), L5 fact-count warn or fail, L6 warn or fail, switch variables warn or fail → all warns, no fails = overall verdict WARN(n)
 - All ✓ = PASS
 
 ## Report
@@ -103,7 +119,7 @@ Collect results:
 Fixed example prompt to audit:
 > "Build the notifications feature."
 
-This prompt reliably fails L1 (no stack named), L3 (no observable outcome), L4 (no constraints), L5 (no file paths), L6 (no checkpoint path), and switch variables — making it a stable, maximally-illustrative demo case.
+This prompt reliably fails L1 (no stack named), L3 (no observable outcome), L4 (no constraints), L5 (no file paths), L6 (no checkpoint path), and switch variables — making it a stable, maximally-illustrative demo case. The two sub-checks are stable on it too: L3 provenance is not applicable (no tag) and the L5 placeholder sub-check passes (no brace tokens).
 
 Write the full audit to `.claude/checkpoints/{sprint_id}/{skill-name}-audit.md` if a sprint_id is known, otherwise print inline only.
 
@@ -119,8 +135,10 @@ Prompt: {file path or "pasted text"}
 | L1 | Jurisdiction | {✓/⚠/✗} | {finding} |
 | L2 | Posture | {✓/⚠/✗} | {finding} |
 | L3 | Objective | {✓/⚠/✗} | {finding} |
+| L3 | Provenance | {✓/⚠/–} | {finding, or "no provenance tag — not applicable"} |
 | L4 | Constraints | {✓/⚠/✗} | {finding} |
 | L5 | Facts | {✓/⚠/✗} | {finding} |
+| L5 | Placeholders | {✓/✗} | {finding, listing any matched `{...}` tokens} |
 | L6 | Output | {✓/⚠/✗} | {finding} |
 | — | Switch variables | {✓/⚠/✗} | {finding} |
 
@@ -140,4 +158,4 @@ Prompt: {file path or "pasted text"}
 ## Switch Variables
 
 - `input-format: file path — wrong assumption → agent treats pasted text as a path and attempts to read it as a file, producing a file-not-found error instead of auditing the pasted prompt`
-- `verdict-sensitivity: L1/L3/L4 fail = overall FAIL — wrong assumption → agent treats all 7 layers equally, returning WARN where FAIL is correct and allowing dispatch of a fatally underspecified agent`
+- `verdict-sensitivity: L1/L3/L4 fail or a residual L5 placeholder = overall FAIL — wrong assumption → agent treats all 7 layers equally, returning WARN where FAIL is correct and allowing dispatch of a fatally underspecified agent`

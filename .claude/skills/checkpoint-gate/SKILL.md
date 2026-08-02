@@ -1,7 +1,7 @@
 ---
 name: checkpoint-gate
 description: Verifies that all expected agents in a sprint have written non-empty checkpoint files before synthesis begins. Outputs a COMPLETE / INCOMPLETE verdict with a named list of any missing agents. Run after all agents complete and before /synthesis-validator or any synthesis step.
-argument-hint: "[sprint_id] [agent-name-1] [agent-name-2] ... OR --sprint-id <id> --agents \"agent-1 agent-2 ...\""
+argument-hint: "[sprint_id] [agent-name-1] [agent-name-2] ... OR --sprint-id <id> --agents \"agent-1 agent-2 ...\" [--trajectory]"
 allowed-tools: Read, Write, Bash
 cluster: session
 priority: 60
@@ -41,8 +41,15 @@ From $ARGUMENTS, extract:
    - `--sprint-id <value>` = sprint_id
    - `--agents "<space-separated names>"` = expected agent list
 
+3. **Optional trajectory flag** (combines with either format above):
+   ```
+   /checkpoint-gate {sprint-id} agent-1 agent-2 --trajectory
+   ```
+   - `--trajectory` present = run Step 6 (advisory trajectory counts). Default: off.
+
 Parse rules:
-- If $ARGUMENTS starts with `--`, apply named-flag parsing.
+- Strip `--trajectory` from $ARGUMENTS first and record it as a boolean; it is never a sprint_id or an agent name.
+- If the remaining $ARGUMENTS starts with `--`, apply named-flag parsing.
 - Otherwise, apply positional parsing: first whitespace-delimited token is sprint_id, remaining tokens are agent names.
 - Agent names in the `--agents` value may be space-separated or comma-separated; split on both.
 
@@ -169,7 +176,29 @@ Reasons:
 - {agent-name}: SKELETON — file exists but under 10 lines or no headings (likely interrupted)
 ```
 
+## Step 6 — Trajectory (advisory, only with `--trajectory`)
+
+Skip this step entirely unless `--trajectory` was passed. **The verdict is already final at this point — nothing in this step may change it.** These counts are descriptive, have no baseline in this repo, and are never a pass/fail input.
+
+Run, with `{since}` = the sprint_id's leading `YYYYMMDD-HHMMSS` timestamp:
+
+```bash
+python3 .claude/scripts/trajectory-report.py --activity .claude/activity.md --since {since}
+```
+
+**Graceful fallback — the script is not part of the synced template.** `checkpoint-gate` ships to downstream repos but `.claude/scripts/trajectory-report.py` may not exist there, and `.claude/activity.md` only exists where the activity hooks are wired. If the command exits non-zero for any reason (script absent, log absent, unparseable sprint_id), do not retry and do not treat it as a gate problem — append this line to the result file instead of the table and continue:
+
+> Trajectory (advisory): unavailable — `{the command's stderr, one line}`. Verdict unaffected.
+
+On success, append the script's stdout verbatim (a `## Trajectory (advisory)` section) to the end of `.claude/checkpoints/{sprint_id}/checkpoint-gate-result.md`, after the Verdict section. Do not edit, re-order, or re-summarise the numbers, and do not add an interpretation of them.
+
+Two limits are load-bearing and must be repeated if you mention the numbers inline:
+
+- **Sprint-aggregate only.** `.claude/activity.md` records `timestamp | label | detail` with no agent attribution, so no count can be assigned to an individual agent.
+- **Mechanical only.** The counts come from the PostToolUse/Stop hooks. Never substitute or supplement them with an agent's self-reported step count.
+
 ## Switch Variables
 
 - `size-check: wc -c > 0 bytes AND 10+ lines AND 1+ headings required — wrong assumption → agent treats file existence alone as sufficient, passing empty or skeleton checkpoints written by interrupted agents`
 - `verdict-scope: all named agents must be PRESENT — wrong assumption → agent checks only the first agent in the list, producing a false COMPLETE when later agents are missing`
+- `trajectory-scope: --trajectory is advisory and off by default — wrong assumption → a sprint is failed on unbaselined step-count noise, or the counts are read as per-agent when the log has no agent attribution`

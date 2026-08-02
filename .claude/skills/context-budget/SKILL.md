@@ -46,6 +46,8 @@ State the zone clearly.
 
 ## Step 3 — Recommend Action
 
+**Placement, not just volume.** Headroom is only half the budget — *where* an instruction sits in the window matters as much as how many tokens are left. Retrieval accuracy is highest for content at the very start and the very end of a long context and measurably lowest in the middle ("lost in the middle", Liu et al., [arXiv:2307.03172](https://arxiv.org/abs/2307.03172)). So when composing the next dispatch or re-anchoring this session, put the operative conditions (L3 objective, L4 constraints, switch variables) either first or last — **never buried** between long tool output, file dumps, or prior agent returns. A GREEN zone with a critical constraint buried mid-context is not safe; move the constraint before proceeding.
+
 ### If GREEN
 > Context budget: GREEN. Headroom is adequate — proceed with the next wave or task.
 

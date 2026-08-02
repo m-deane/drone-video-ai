@@ -113,4 +113,4 @@ Optionally write the full ranked cut list to `.claude/checkpoints/{sprint_id}/{s
 ## Switch Variables
 
 - `budget-threshold: 7 conditions = OVER-SPECIFIED — wrong assumption → agent applies no numeric threshold, never flagging over-specification regardless of how many conditions are present`
-- `mandatory-vars: user-scoping/error-type/zod-bounds are always MANDATORY regardless of apparent redundancy — wrong assumption → agent classifies these as FILLER when they appear generic, causing the audit to recommend removing the three most critical project constraints`
+- `mandatory-vars: the switch variables defined in the project's own CLAUDE.md ## Critical Patterns section are always MANDATORY regardless of apparent redundancy (downstream web-app worked examples: user-scoping/error-type/zod-bounds; this repo: sync-mode/autonomy-level/distribution-model/claude-md-edit-scope/bias-awareness) — wrong assumption → agent hardcodes another project's variable names, classifies this project's real switch variables as FILLER, and the audit recommends removing the most critical project constraints`

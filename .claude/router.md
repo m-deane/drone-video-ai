@@ -11,12 +11,12 @@ Reference for skill disambiguation when multiple skills could match or no hookif
 
 | Cluster | Core skills | Discriminating signals | Negative signals (NOT this cluster) |
 |---------|------------|----------------------|-------------------------------------|
-| build | spec-first, tdd-feature, full-project, eval-harness, mcp-builder, generate-tests, refactor-code | "implement", "create", "add feature", "build", "write code for" | "review", "check", "audit" |
+| build | spec-first, tdd-feature, full-project, eval-harness, mcp-builder, generate-tests, refactor-code, project-rails | "implement", "create", "add feature", "build", "write code for", "project rails", "scaffold a new project" | "review", "check", "audit" |
 | review | code-review, architecture-review, security-scan, review-schema-changes, red-team, hallucination-check, rubric-eval, prompt-critique-rewrite | "review", "check", "audit", "evaluate", "is this safe" | "implement", "build", "create" |
 | debug | debug-test-failure, verify-implementation, explain-code | "fix", "failing", "broken", "error", "debug", "why isn't" | "implement new", "add feature" |
 | orchestrate | sprint, launch-agent-team, resume, retry, qa-iterate, goal, compose | "sprint", "agents", "parallel", "orchestrate", "recipe" | single-file changes |
 | prompt-eng | generate-prompt, generate-agent-prompt, stability-test, prompt-ab-test, marginal-evidence-audit, condition-audit, version-prompt, eval-runner | "prompt", "skill", "stability", "regression", "version", "snapshot", "promote", "eval across the dataset" | "implement", "deploy" |
-| session | session-start, session-conditioner, checkpoint-gate, synthesis-validator, calibration-retrospective, context-budget, summarise, whats-left, todo | "start", "status", "summarise", "what's left", "checkpoint" | implementation requests |
+| session | session-start, session-conditioner, checkpoint-gate, synthesis-validator, calibration-retrospective, context-budget, summarise, whats-left, todo | "start", "status", "summarise", "what's left", "checkpoint", "bayesian", "condition the session", "switch variables" | implementation requests |
 | ship | commit, create-pr, release, housekeeping, branch-consolidation, dependency-update, huggingface-deploy | "commit", "push", "release", "deploy", "sync", "PR" | "implement", "review" |
 | reason | clarify, reverse-prompt, debate, steelman, ultra-think, success-criteria, bias-check, balanced-research | "clarify", "think deeply", "debate", "steelman", "argue for", "what am I missing", "check my bias", "balanced view" | direct implementation requests |
 
@@ -33,6 +33,8 @@ When two skills match, use this tiebreaker:
 | "generate a prompt to..." | generate-prompt | generate-agent-prompt | generate-agent-prompt is only for multi-agent dispatch prompts |
 | "review the architecture" / "evaluate design" | architecture-review | code-review | architecture-review evaluates system-level design; code-review is file-level |
 | "implement with TDD" / "test first" | tdd-feature | generate-tests | tdd-feature is the full workflow; generate-tests is test-only |
+| "spec for this new project" / "set up project docs before coding" | project-rails | spec-first | project-rails owns the project-level day-0 scaffold (blueprint, timeline, AGENTS.md); spec-first owns single-feature specs inside an already-tracked project |
+| "what's next on the timeline" / "next unchecked item" | project-rails | whats-left | when `docs/PRODUCT_TIMELINE.md` exists it is the authoritative tracker; whats-left derives from git state and plan files |
 
 ## Dark Skill Triggers
 
@@ -57,6 +59,10 @@ Skills with no hookify rule — route manually when these phrases appear:
 | "update the docs" / "sync the docs with the code" | update-docs |
 | "test the notebooks" / "validate notebooks" / "check notebooks still work" | validate-notebooks |
 | "test the web app" / "check the frontend with Playwright" / "screenshot the browser" | webapp-testing |
+| "bayesian prompting" / "apply bayesian principles" / "shift the posterior" / "reduce prior dominance" | goal (Layer-2 backstop — `detect-bayesian-prompting` is the Layer-1 trigger) |
+| "condition the session" / "condition the model on the project" / "set the switch variables" | session-conditioner |
+| "run a calibration retrospective" / "did the conditions hold" | calibration-retrospective |
+| "audit the switch variables" / "audit the conditions block" | condition-audit |
 
 ## Recipe Index
 

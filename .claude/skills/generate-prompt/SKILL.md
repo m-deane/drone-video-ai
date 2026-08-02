@@ -55,6 +55,18 @@ Map scope + risk to one of:
 | `[COMPLEX]` | 6+ files | Any | Parallel agent team |
 | `[HIGH-RISK]` | Any | Schema/auth | Single agent + mandatory human review |
 
+## Step 3b: Demo Bootstrap from Scored Evals
+
+Check whether a scored eval dataset exists for the task domain:
+
+```bash
+ls .claude/evals/*/dataset.yml 2>/dev/null || echo "NO-EVAL-DATASETS"
+```
+
+If a dataset under `.claude/evals/{slug}/` matches the task domain and has authored gold outputs, select the 1-2 highest-scoring gold input→output pairs — ranked by per-example overall score in the most recent `/eval-runner` scorecard if one exists, otherwise the examples tagged `positive`/`standard` in `dataset.yml` — and insert them verbatim into the template's `## Examples` section as few-shot examples. Demonstrations are stronger likelihood evidence than instruction wording (DSPy, arXiv:2310.03714): a scored-good input→output pair concentrates P(output|context) on the wanted behaviour more than any added instruction sentence.
+
+If no matching dataset exists, this step is a no-op — state "Demo bootstrap: no scored eval dataset under `.claude/evals/` matches this task; Examples will be authored from Step 1b source files instead." and continue.
+
 ## Step 4: Write the Prompt
 
 Output a ready-to-copy prompt using the template below. Fill in every bracketed section — never leave placeholders.
@@ -127,7 +139,7 @@ Expected output: [how the agent should handle it]
 Before presenting the output, verify:
 
 - [ ] `## Role` section is present and names a concrete role (not a placeholder)
-- [ ] `## Examples` section contains at least one input→output pair derived from actual files inspected in Step 1b — **fail generation if Examples is empty**
+- [ ] `## Examples` section contains at least one input→output pair — either bootstrapped from scored gold pairs in Step 3b or derived from actual files inspected in Step 1b — **fail generation if Examples is empty**
 - [ ] All file paths are absolute or relative to repo root — no vague references
 - [ ] Success criteria are numbered, measurable, and verifiable (not "it should work")
 - [ ] The constraints section matches this project's actual rules (not generic advice)

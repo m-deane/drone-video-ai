@@ -13,7 +13,7 @@ You have written a full conditions block (L1 through Switch variables). Before d
 
 **Run:** `/condition-budget-auditor [conditions-block-or-file]`
 
-Why this matters: The top 5 conditions capture ~95% of reducible entropy. Beyond 7 total conditions, signal dilution sets in — each additional condition competes for attention weight, reducing the probability that load-bearing conditions hold through the full context.
+Why this matters: A small number of high-leverage conditions captures most of the reducible variance — the 5-condition budget is a practitioner heuristic, not a measured constant. Beyond 7 total conditions, signal dilution sets in — each additional condition competes for attention weight, reducing the probability that load-bearing conditions hold through the full context.
 
 The auditor classifies each condition as:
 - **MANDATORY** — one of the project-critical switch variables declared in `CLAUDE.md` → `## Critical Patterns` (read this section first; if absent, ask the user to declare them)
